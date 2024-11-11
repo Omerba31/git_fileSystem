@@ -1,4 +1,7 @@
 # Define variables
+.PHONY: build run stop rebuild clean
+
+# Define variables for Docker
 IMAGE_NAME := dev-env
 CONTAINER_NAME := dev-container
 WORKDIR := /workspace
