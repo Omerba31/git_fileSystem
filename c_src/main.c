@@ -378,7 +378,7 @@ int main(int argc, char *argv[])
 
     //save_file_based_on_hash(argv[1], hash); // Save the file based on its hash
     //delete_file_based_on_hash(hash);        // Delete the file based on its hash
-    //delete_file_based_on_hash_by_name(hash); // Delete the file based on its hash
-    delete_file_by_name(argv[1]); // Delete the file based on its filename
+    delete_file_based_on_hash_by_name(hash); // Delete the file based on its hash
+    //delete_file_by_name(argv[1]); // Delete the file based on its filename
     return EXIT_SUCCESS;
 }
