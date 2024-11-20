@@ -5,7 +5,7 @@ FROM ubuntu:20.04
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Set the working directory
-WORKDIR /app
+WORKDIR /workspace
 
 # Update the package list and install required packages, including OpenSSL
 RUN apt-get update && \
