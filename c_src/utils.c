@@ -1,33 +1,37 @@
-#include "utils.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include <errno.h>
+#include <sys/types.h>
+#include "utils.h"
 
-int create_directory(const char *dir_name) {
-    if (mkdir(dir_name, 0755) == -1 && errno != EEXIST) {
-        perror("Failed to create directory");
+int create_directory(const char *dir_name, mode_t mode) {
+    if (mkdir(dir_name, mode) == -1 && errno != EEXIST) {
         return 0;
     }
     return 1;
 }
+
 
 int file_exists(const char *file_path) {
     struct stat file_stat;
     return stat(file_path, &file_stat) == 0;
 }
 
+
+
+
+
 int copy_file(const char *src, const char *dest) {
     FILE *source_file = fopen(src, "rb");
     if (!source_file) {
-        perror("Failed to open source file");
         return 0;
     }
 
     FILE *dest_file = fopen(dest, "wb");
     if (!dest_file) {
-        perror("Failed to create destination file");
         fclose(source_file);
         return 0;
     }

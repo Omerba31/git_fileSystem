@@ -3,7 +3,7 @@
 
 #define BUFFER_SIZE 4096
 
-int create_directory(const char *dir_name);
+int create_directory(const char *dir_name, mode_t mode);
 int file_exists(const char *file_path);
 int copy_file(const char *src, const char *dest);
 int remove_file(const char *file_path);

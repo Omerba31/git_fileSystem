@@ -1,39 +1,47 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <linux/limits.h>
 #include "save_hash.h"
 #include "utils.h"
+#include "sha1_utils.h"
 
-void save_file_based_on_hash(const char *filename, const char *hash) {
-    // Create the hashed_files directory in the current directory
-    const char *root_dir = "./hashed_files";
-    create_directory(root_dir);
+#define HASH_SIZE 40     // SHA-1 hash size (in characters)
+#define BUFFER_SIZE 4096 // Buffer size for file operations
+
+void save_file(const char *root_dir, const char *filename) {
+    // Compute the SHA1 hash of the file
+    char hash[HASH_SIZE + 1];
+    compute_sha1(filename, hash);
+
+    // Create the root directory if it does not exist
+    create_directory(root_dir, 0755);
 
     // Create the directory structure based on the first two characters of the hash
-    char dir_name[256];
-    snprintf(dir_name, sizeof(dir_name), "%s/%.2s", root_dir, hash);
-    create_directory(dir_name);
+    char dir_name[PATH_MAX];
+    strcpy(dir_name, root_dir);
+    strcat(dir_name, "/");
+    strncat(dir_name, hash, 2);
+    create_directory(dir_name, 0755);
 
     // Construct the file path using the hash
-    size_t file_path_size = strlen(dir_name) + 1 + strlen(hash) + 1;
-    char *file_path = malloc(file_path_size);
-    if (!file_path) {
-        perror("Memory allocation failed");
-        exit(EXIT_FAILURE);
-    }
-    snprintf(file_path, file_path_size, "%s/%s", dir_name, hash);
+    char file_path[PATH_MAX];
 
+    strcpy(file_path, dir_name);
+    strcat(file_path, "/");
+    strcat(file_path, hash);
+
+    // Check if the file already exists
     if (file_exists(file_path)) {
-        printf("File already exists in the system: %s\n", file_path);
-        free(file_path);
         return;
     }
-
-    copy_file(filename, file_path);
-    printf("File saved as %s\n", file_path);
-    free(file_path);
+    // Copy the file to the new location
+    if (copy_file(filename, file_path) != 0) {
+        exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE);
+    }
 }

@@ -1,30 +1,27 @@
-# Define variables
-.PHONY: build run stop rebuild clean
+# Variables
+CONTAINER_NAME = dev-container
+IMAGE_NAME = dev-env
+WORKSPACE_DIR ?= $(PWD)
+DOCKER_COMMAND = /bin/bash
 
-# Define variables for Docker
-IMAGE_NAME := dev-env
-CONTAINER_NAME := dev-container
-WORKDIR := /workspace
-HOST_DIR := $(PWD)
-
-# Build the Docker image
+# Targets
 build:
 	docker build -t $(IMAGE_NAME) .
 
-# Run the Docker container with bind mount to ./workspace dir
-run:
+run: stop remove build
 	docker run -it --name $(CONTAINER_NAME) \
-		-v $(HOST_DIR):$(WORKDIR) \
-		$(IMAGE_NAME) /bin/bash
+		-v $(WORKSPACE_DIR):/workspace \
+		$(IMAGE_NAME) $(DOCKER_COMMAND) -c "gcc -shared -o /workspace/libopenfile.so -fPIC /workspace/c_src/*.c -lcrypto && $(DOCKER_COMMAND)"
 
-# Stop and remove the Docker container
 stop:
-	docker stop $(CONTAINER_NAME)
-	docker rm $(CONTAINER_NAME)
+	@docker stop $(CONTAINER_NAME) 2>/dev/null || true
 
-# Rebuild the image and run the container
-rebuild: stop build run
+remove:
+	@docker rm $(CONTAINER_NAME) 2>/dev/null || true
 
-# Clean up the image
 clean:
-	docker rmi $(IMAGE_NAME)
+	docker container prune -f
+	docker image prune -f
+	docker volume prune -f
+
+.PHONY: build run stop remove clean
