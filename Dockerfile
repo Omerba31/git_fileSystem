@@ -1,5 +1,5 @@
 # Use an appropriate base image
-FROM python:3.9-slim
+FROM ubuntu:20.04
 
 # Set environment variables to avoid interactive prompts during installations
 ENV DEBIAN_FRONTEND=noninteractive
@@ -15,7 +15,9 @@ RUN apt-get update && \
     make \
     cmake \
     git \
-    python3-dev \
+    python3 \
+    python3-pip \
+    python3-venv \
     libssl-dev && \
     rm -rf /var/lib/apt/lists/*
 
@@ -56,5 +58,3 @@ RUN /opt/venv/bin/python -c "import ctypes"
 
 # Confirm OpenSSL installation
 RUN openssl version
-
-

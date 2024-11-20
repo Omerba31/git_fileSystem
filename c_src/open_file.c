@@ -1,4 +1,5 @@
 #include "open_file.h"
+#include "sha1_utils.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -22,6 +23,9 @@ int open_file_by_hash(const char *filename) {
     // Construct the file path using the hash and the ./hashed_files directory
     char file_path[256];
     snprintf(file_path, sizeof(file_path), "./hashed_files/%s/%s", dir_name, hash);
+
+    printf("Computed hash: %s\n", hash);
+    printf("Constructed file path: %s\n", file_path);
 
     // Open the file and return the file descriptor
     int fd = open(file_path, O_RDONLY);
