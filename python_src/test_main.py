@@ -23,7 +23,6 @@ def test_compute_sha1():
     assert hash_output != "", "Failed to compute SHA1 hash"
 
 def test_open_content():
-def test_open_content():
     # Create a test file
     test_filename = os.path.join(os.getcwd(), "./files/file1.txt")
     test_filename = os.path.join(os.getcwd(), "./files/file1.txt")

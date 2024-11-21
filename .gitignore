@@ -7,12 +7,3 @@ lib/
 libopenfile.so
 objects/
 open_file
-__pycache__/
-.vscode/
-2b/
-files/
-hashed_files/
-lib/
-libopenfile.so
-objects/
-open_file
