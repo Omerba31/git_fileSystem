@@ -6,6 +6,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <linux/limits.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <linux/limits.h>
 #include "save_hash.h"
 #include "utils.h"
 #include "sha1_utils.h"
@@ -19,14 +23,13 @@ void save_file(const char *root_dir, const char *filename) {
     compute_sha1(filename, hash);
 
     // Create the root directory if it does not exist
-    create_directory(root_dir, 0755);
-
+    mkdir(root_dir, 0755);
     // Create the directory structure based on the first two characters of the hash
     char dir_name[PATH_MAX];
     strcpy(dir_name, root_dir);
     strcat(dir_name, "/");
     strncat(dir_name, hash, 2);
-    create_directory(dir_name, 0755);
+    mkdir(dir_name, 0755);
 
     // Construct the file path using the hash
     char file_path[PATH_MAX];
@@ -36,7 +39,8 @@ void save_file(const char *root_dir, const char *filename) {
     strcat(file_path, hash);
 
     // Check if the file already exists
-    if (file_exists(file_path)) {
+    struct stat file_stat;
+    if (stat(file_path, &file_stat) == 0) {
         return;
     }
     // Copy the file to the new location

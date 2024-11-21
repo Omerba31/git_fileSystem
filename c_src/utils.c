@@ -2,26 +2,11 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include <errno.h>
 #include <sys/types.h>
 #include "utils.h"
-
-int create_directory(const char *dir_name, mode_t mode) {
-    if (mkdir(dir_name, mode) == -1 && errno != EEXIST) {
-        return 0;
-    }
-    return 1;
-}
-
-
-int file_exists(const char *file_path) {
-    struct stat file_stat;
-    return stat(file_path, &file_stat) == 0;
-}
-
-
-
 
 
 int copy_file(const char *src, const char *dest) {
