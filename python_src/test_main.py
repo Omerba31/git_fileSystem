@@ -68,3 +68,115 @@ def test_save_file():
     # Check that the file was saved correctly
     saved_file_path = os.path.join(OBJECTS_DIR, f"{hash_output[:2]}/{hash_output}")
     assert os.path.exists(saved_file_path), "Failed to save the file based on hash"
+
+
+# Meshi
+
+def test_save_same_file_twice():
+    test_filename = os.path.join(os.getcwd(), "./files/file4.txt")
+    os.makedirs(os.path.dirname(test_filename), exist_ok=True)
+    with open(test_filename, 'w') as f:
+        f.write("This is a test file for duplication check.")
+
+    # Save the file based on the hash
+    file_manager.save_file(OBJECTS_DIR, test_filename)
+    
+    # Compute the hash of the file
+    hash_output = file_manager.compute_sha1(test_filename)
+
+    # Save the same file again
+    file_manager.save_file(OBJECTS_DIR, test_filename)
+
+    # Check that the file still exists and is not corrupted
+    saved_file_path = os.path.join(OBJECTS_DIR, f"{hash_output[:2]}/{hash_output}")
+    assert os.path.exists(saved_file_path), "File does not exist after saving twice"
+    
+    # Verify the content of the saved file
+    with open(saved_file_path, 'r') as f:
+        content = f.read()
+    assert content == "This is a test file for duplication check.", "File content corrupted after saving twice"
+
+def test_save_file_same_content_different_name():
+    content = "This is a test file for identical content."
+
+    # Create two files with the same content but different names
+    test_filename1 = os.path.join(os.getcwd(), "./files/file5.txt")
+    test_filename2 = os.path.join(os.getcwd(), "./files/file6.txt")
+    os.makedirs(os.path.dirname(test_filename1), exist_ok=True)
+    with open(test_filename1, 'w') as f1, open(test_filename2, 'w') as f2:
+        f1.write(content)
+        f2.write(content)
+
+    # Save both files
+    file_manager.save_file(OBJECTS_DIR, test_filename1)
+    file_manager.save_file(OBJECTS_DIR, test_filename2)
+
+    # Compute their hashes
+    hash1 = file_manager.compute_sha1(test_filename1)
+    hash2 = file_manager.compute_sha1(test_filename2)
+
+    # Verify the hashes are different since the filenames are different
+    assert hash1 != hash2, "Hashes for files with different names should be different"
+
+    # Ensure both files are saved in their respective locations
+    saved_file_path1 = os.path.join(OBJECTS_DIR, f"{hash1[:2]}/{hash1}")
+    saved_file_path2 = os.path.join(OBJECTS_DIR, f"{hash2[:2]}/{hash2}")
+    assert os.path.exists(saved_file_path1), f"File {saved_file_path1} does not exist in the database"
+    assert os.path.exists(saved_file_path2), f"File {saved_file_path2} does not exist in the database"
+
+def test_open_non_existent_file():
+    # Generate a random hash that doesn't exist
+    non_existent_hash = "deadbeef" + "0" * 32  # Random SHA1-like hash
+    
+    # Attempt to open the non-existent file
+    fd = file_manager.open_content(OBJECTS_DIR, non_existent_hash)
+    
+    # Verify that the function returns -1 or an equivalent error code
+    assert fd == -1, "Opening a non-existent file should fail"
+
+# def test_compute_hash_non_existent_file():
+#     non_existent_file = os.path.join(os.getcwd(), "./files/non_existent_file.txt")
+    
+#     print(f"Attempting to compute SHA1 for non-existent file: {non_existent_file}")
+#     hash_output = file_manager.compute_sha1(non_existent_file)
+    
+#     # Check if the output is an empty string
+#     assert hash_output == "", "Expected empty hash output for non-existent file"
+#     print("Test passed: compute_sha1 returned empty hash for non-existent file.")
+
+
+# def test_save_and_delete_file():
+#     test_filename = os.path.join(os.getcwd(), "./files/file7.txt")
+#     os.makedirs(os.path.dirname(test_filename), exist_ok=True)
+#     with open(test_filename, 'w') as f:
+#         f.write("This is a test file for save and delete.")
+
+#     # Save the file
+#     file_manager.save_file(OBJECTS_DIR, test_filename)
+
+#     # Compute the hash
+#     hash_output = file_manager.compute_sha1(test_filename)
+
+#     # Remove the file
+#     file_manager.delete_file_based_on_hash(hash_output)
+
+#     # Check that the file no longer exists
+#     saved_file_path = os.path.join(OBJECTS_DIR, f"{hash_output[:2]}/{hash_output}")
+#     assert not os.path.exists(saved_file_path), "File still exists after deletion"
+
+def test_delete_non_existent_file():
+    non_existent_hash = "deadbeef" + "0" * 32  # Random SHA1-like hash
+    
+    # Attempt to delete a non-existent file
+    try:
+        file_manager.delete_file_based_on_hash(non_existent_hash)
+    except Exception as e:
+        assert False, f"Deleting a non-existent file raised an exception: {e}"
+    else:
+        assert True, "Deleting a non-existent file should silently succeed"
+
+
+
+
+
+

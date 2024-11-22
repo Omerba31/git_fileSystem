@@ -47,6 +47,11 @@ int open_content(const char *root_dir, const char *hash) {
 
     // Open the file and return the file descriptor
     int fd = open(file_path, O_RDONLY);
+    if (fd == -1) {
+        // Print the error for debugging purposes
+        fprintf(stderr, "Failed to open file: %s (errno: %d, error: %s)\n",
+                file_path, errno, strerror(errno));
+    }
 
     return fd;
 }
