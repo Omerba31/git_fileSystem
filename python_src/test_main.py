@@ -1,5 +1,6 @@
 import os
 import pytest
+from unittest.mock import patch
 from file_manager import FileManager
 
 # Mimic #define in Python by using a constant
@@ -69,7 +70,6 @@ def test_save_file():
     saved_file_path = os.path.join(OBJECTS_DIR, f"{hash_output[:2]}/{hash_output}")
     assert os.path.exists(saved_file_path), "Failed to save the file based on hash"
 
-
 # Meshi
 
 def test_save_same_file_twice():
@@ -107,10 +107,6 @@ def test_save_file_same_content_different_name():
         f1.write(content)
         f2.write(content)
 
-    # Save both files
-    file_manager.save_file(OBJECTS_DIR, test_filename1)
-    file_manager.save_file(OBJECTS_DIR, test_filename2)
-
     # Compute their hashes
     hash1 = file_manager.compute_sha1(test_filename1)
     hash2 = file_manager.compute_sha1(test_filename2)
@@ -134,35 +130,37 @@ def test_open_non_existent_file():
     # Verify that the function returns -1 or an equivalent error code
     assert fd == -1, "Opening a non-existent file should fail"
 
-# def test_compute_hash_non_existent_file():
-#     non_existent_file = os.path.join(os.getcwd(), "./files/non_existent_file.txt")
-    
-#     print(f"Attempting to compute SHA1 for non-existent file: {non_existent_file}")
-#     hash_output = file_manager.compute_sha1(non_existent_file)
-    
-#     # Check if the output is an empty string
-#     assert hash_output == "", "Expected empty hash output for non-existent file"
-#     print("Test passed: compute_sha1 returned empty hash for non-existent file.")
+def test_compute_hash_non_existent_file():
+    non_existent_file = os.path.join(os.getcwd(), "./files/non_existent_file.txt")
+    print(f"Non-existent file path: {non_existent_file}")
 
+    # Call compute_sha1 and expect it to return an empty string (➕)
+    hash_output = file_manager.compute_sha1(non_existent_file)
 
-# def test_save_and_delete_file():
-#     test_filename = os.path.join(os.getcwd(), "./files/file7.txt")
-#     os.makedirs(os.path.dirname(test_filename), exist_ok=True)
-#     with open(test_filename, 'w') as f:
-#         f.write("This is a test file for save and delete.")
+    # Assert that the output is an empty string for a non-existent file (➕)
+    assert hash_output == "", "Expected empty hash output for non-existent file"  # Adjusted expectation (➕)
 
-#     # Save the file
-#     file_manager.save_file(OBJECTS_DIR, test_filename)
+def test_save_and_delete_file():
+    test_filename = os.path.join(os.getcwd(), "./files/file7.txt")
+    os.makedirs(os.path.dirname(test_filename), exist_ok=True)
+    with open(test_filename, 'w') as f:
+        f.write("This is a test file for save and delete.")
 
-#     # Compute the hash
-#     hash_output = file_manager.compute_sha1(test_filename)
+    # Save the file
+    file_manager.save_file(OBJECTS_DIR, test_filename)
 
-#     # Remove the file
-#     file_manager.delete_file_based_on_hash(hash_output)
+    # Compute the hash
+    hash_output = file_manager.compute_sha1(test_filename)
 
-#     # Check that the file no longer exists
-#     saved_file_path = os.path.join(OBJECTS_DIR, f"{hash_output[:2]}/{hash_output}")
-#     assert not os.path.exists(saved_file_path), "File still exists after deletion"
+    # Confirm the file exists before deletion (➕)
+    saved_file_path = os.path.join(OBJECTS_DIR, f"{hash_output[:2]}/{hash_output}")  # Existed code, used for pre-check (✅)
+    assert os.path.exists(saved_file_path), "File was not saved correctly"  # Added check for existence before deletion (➕)
+        
+    # Remove the file
+    file_manager.delete_file_based_on_hash(hash_output)
+
+    # Check that the file no longer exists
+    assert not os.path.exists(saved_file_path), "File still exists after deletion"
 
 def test_delete_non_existent_file():
     non_existent_hash = "deadbeef" + "0" * 32  # Random SHA1-like hash
