@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/types.h>
-#include "utils.h"
+#include "file_utils.h"
 
 
 int copy_file(const char *src, const char *dest) {

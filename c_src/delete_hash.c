@@ -2,8 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "delete_hash.h"
-#include "utils.h"
+#include "file_utils.h"
 
 void delete_file_based_on_hash(const char *hash)
 {

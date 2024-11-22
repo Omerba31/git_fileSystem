@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <openssl/evp.h>
-#include "sha1_utils.h"
+#include "file_utils.h"
 
 void compute_sha1(const char *filename, char *output)
 {
