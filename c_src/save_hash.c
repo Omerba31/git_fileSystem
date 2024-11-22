@@ -10,7 +10,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <linux/limits.h>
-#include "file_utils.h"
+#include "save_hash.h"
+#include "utils.h"
+#include "sha1_utils.h"
 
 #define HASH_SIZE 40     // SHA-1 hash size (in characters)
 #define BUFFER_SIZE 4096 // Buffer size for file operations
