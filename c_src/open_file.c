@@ -7,7 +7,8 @@
 #include <errno.h>
 #include <linux/limits.h>
 #include <openssl/evp.h>
-#include "file_utils.h"
+#include "open_file.h"
+#include "sha1_utils.h"
 
 #define HASH_SIZE 40     // SHA-1 hash size (in characters)
 #define BUFFER_SIZE 4096 // Buffer size for file operations
