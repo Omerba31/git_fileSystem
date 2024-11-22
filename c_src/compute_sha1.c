@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <openssl/evp.h>
-#include "sha1_utils.h"
+#include "file_utils.h"
 
-void compute_sha1(const char *filename, char *output)
+int compute_sha1(const char *filename, char *output)
 {
     unsigned char hash[EVP_MAX_MD_SIZE];
     unsigned int hash_len;
@@ -14,20 +14,21 @@ void compute_sha1(const char *filename, char *output)
     if (!mdctx)
     {
         perror("Failed to create EVP_MD_CTX");
-        exit(EXIT_FAILURE);
+        return -1;
     }
     if (EVP_DigestInit_ex(mdctx, EVP_sha1(), NULL) != 1)
     {
         perror("EVP_DigestInit_ex failed");
         EVP_MD_CTX_free(mdctx);
-        exit(EXIT_FAILURE);
+        return -1;
     }
 
+    // Add filename to the hash input
     if (EVP_DigestUpdate(mdctx, filename, strlen(filename)) != 1)
     {
         perror("EVP_DigestUpdate failed on filename");
         EVP_MD_CTX_free(mdctx);
-        exit(EXIT_FAILURE);
+        return -1;
     }
 
     FILE *file = fopen(filename, "rb");
@@ -35,7 +36,7 @@ void compute_sha1(const char *filename, char *output)
     {
         perror("Failed to open file");
         EVP_MD_CTX_free(mdctx);
-        exit(EXIT_FAILURE);
+        return -1;
     }
 
     size_t bytes_read;
@@ -46,7 +47,7 @@ void compute_sha1(const char *filename, char *output)
             perror("EVP_DigestUpdate failed on file content");
             fclose(file);
             EVP_MD_CTX_free(mdctx);
-            exit(EXIT_FAILURE);
+            return -1;
         }
     }
     fclose(file);
@@ -55,7 +56,7 @@ void compute_sha1(const char *filename, char *output)
     {
         perror("EVP_DigestFinal_ex failed");
         EVP_MD_CTX_free(mdctx);
-        exit(EXIT_FAILURE);
+        return -1;
     }
 
     for (unsigned int i = 0; i < hash_len; i++)
@@ -64,4 +65,5 @@ void compute_sha1(const char *filename, char *output)
     }
     output[hash_len * 2] = '\0';
     EVP_MD_CTX_free(mdctx);
+    return 0;
 }
