@@ -7,7 +7,7 @@ from file_manager import FileManager
 OBJECTS_DIR = os.path.join(os.getcwd(), "./objects")
 
 # Initialize the FileManager with the path to the shared library
-file_manager = FileManager('/workspace/libopenfile.so')
+file_manager = FileManager('/workspace/libcaf.so')
 
 
 def test_compute_sha1():
@@ -45,20 +45,21 @@ def test_open_content():
     assert fd != -1, "Failed to open the file"
 
     # Try reading the file and comparing the contents to what you intended to write into the file
-    with open(test_filename, 'r') as f:
+    with os.fdopen(fd, 'r') as f:
+        # Read and compare the contents
         content = f.read()
     assert content == "This is a test file.", "File content does not match"
 
-    # Clean up
-    os.close(fd)
+    # Clean up (file descriptor is automatically closed by the 'with' statement)
 
 
 def test_save_file():
     # Create a test file
     test_filename = os.path.join(os.getcwd(), "./files/file3.txt")
     os.makedirs(os.path.dirname(test_filename), exist_ok=True)
+    original_content = "This is a test file for saving based on hash."
     with open(test_filename, 'w') as f:
-        f.write("This is a test file for saving based on hash.")
+        f.write(original_content)
 
     # Save the file based on the hash
     file_manager.save_file(OBJECTS_DIR, test_filename)
@@ -66,11 +67,19 @@ def test_save_file():
     # Compute the SHA1 hash
     hash_output = file_manager.compute_sha1(test_filename)
 
-    # Check that the file was saved correctly
+    # Construct the path of the saved file
     saved_file_path = os.path.join(OBJECTS_DIR, f"{hash_output[:2]}/{hash_output}")
+
+    # Check that the file was saved correctly
     assert os.path.exists(saved_file_path), "Failed to save the file based on hash"
 
-# Meshi
+    # Read the content of the saved file and verify it matches the original content
+    with open(saved_file_path, 'r') as saved_file:
+        saved_content = saved_file.read()
+    assert saved_content == original_content, "Saved file content does not match the original"
+
+    print("Test passed: File saved and content verified successfully.")
+
 
 def test_save_same_file_twice():
     test_filename = os.path.join(os.getcwd(), "./files/file4.txt")

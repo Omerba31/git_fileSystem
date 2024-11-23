@@ -28,7 +28,7 @@ int open_content(const char *root_dir, const char *hash);
  * @param filename The name of the file to save.
  * @param hash The hash value associated with the file.
  */
-void save_file(const char *filename, const char *hash);
+int save_file(const char *filename, const char *hash);
 
 /**
  * @brief Computes the SHA-1 hash of a file.
