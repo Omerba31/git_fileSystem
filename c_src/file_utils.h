@@ -4,14 +4,25 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define BUFFER_SIZE 4096
+#define HASH_SIZE 40     // SHA-1 hash size (in characters)
+#define BUFFER_SIZE 4096 // Buffer size for file operations
+#define DIR_NAME_SIZE 2  // Number of characters from hash used for directory name
+
+
+// Macro for safe index advancement
+#define PATH_ADVANCE(index) do { \
+    if ((index) >= PATH_MAX) { \
+        return -1; \
+    } \
+    (index)++; \
+} while (0)
 
 /**
  * @brief Deletes a file based on its hash value.
  *
  * @param hash The hash value of the file to delete.
  */
-void delete_file_based_on_hash(const char *hash);
+int delete_file_based_on_hash(const char *root_dir, const char *hash);
 
 /**
  * @brief Opens a file based on its root directory and hash.

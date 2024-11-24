@@ -9,7 +9,6 @@ OBJECTS_DIR = os.path.join(os.getcwd(), "./objects")
 # Initialize the FileManager with the path to the shared library
 file_manager = FileManager('/workspace/libcaf.so')
 
-
 def test_compute_sha1():
     # Create a test file
     test_filename = os.path.join(os.getcwd(), "./files/file2.txt")
@@ -25,7 +24,6 @@ def test_compute_sha1():
 
     # Check that the hash is not empty
     assert hash_output != "", "Failed to compute SHA1 hash"
-
 
 def test_open_content():
     # Create a test file
@@ -51,7 +49,6 @@ def test_open_content():
     assert content == "This is a test file.", "File content does not match"
 
     # Clean up (file descriptor is automatically closed by the 'with' statement)
-
 
 def test_save_file():
     # Create a test file
@@ -80,7 +77,6 @@ def test_save_file():
 
     print("Test passed: File saved and content verified successfully.")
 
-
 def test_save_same_file_twice():
     test_filename = os.path.join(os.getcwd(), "./files/file4.txt")
     os.makedirs(os.path.dirname(test_filename), exist_ok=True)
@@ -106,7 +102,6 @@ def test_save_same_file_twice():
     assert content == "This is a test file for duplication check.", "File content corrupted after saving twice"
 
 def test_save_file_same_content_different_name():
-    #TODO: THIS TEST IS NOT PASSING. CHECK WAY AND FIX
     content = "This is a test file for identical content."
 
     # Create two files with the same content but different names
@@ -123,12 +118,39 @@ def test_save_file_same_content_different_name():
 
     # Verify the hashes are different since the filenames are different
     assert hash1 != hash2, "Hashes for files with different names should be different"
+    print(f"Hash1: {hash1}, Hash2: {hash2}")
 
-    # Ensure both files are saved in their respective locations
+    file_manager.save_file(OBJECTS_DIR, test_filename1)
+    file_manager.save_file(OBJECTS_DIR, test_filename2)
+
     saved_file_path1 = os.path.join(OBJECTS_DIR, f"{hash1[:2]}/{hash1}")
     saved_file_path2 = os.path.join(OBJECTS_DIR, f"{hash2[:2]}/{hash2}")
-    assert os.path.exists(saved_file_path1), f"File {saved_file_path1} does not exist in the database"
-    assert os.path.exists(saved_file_path2), f"File {saved_file_path2} does not exist in the database"
+
+    # Ensure both files are saved in their respective locations
+    assert os.path.exists(saved_file_path1), f"File {saved_file_path1} does not exist in the database1"
+    assert os.path.exists(saved_file_path2), f"File {saved_file_path2} does not exist in the database2"
+
+def test_save_and_delete_file():
+    test_filename = os.path.join(os.getcwd(), "./files/file7.txt")
+    os.makedirs(os.path.dirname(test_filename), exist_ok=True)
+    with open(test_filename, 'w') as f:
+        f.write("This is a test file for save and delete.")
+
+    # Save the file
+    file_manager.save_file(OBJECTS_DIR, test_filename)
+
+    # Compute the hash
+    hash_output = file_manager.compute_sha1(test_filename)
+
+    # Confirm the file exists before deletion (➕)
+    saved_file_path = os.path.join(OBJECTS_DIR, f"{hash_output[:2]}/{hash_output}")  # Existed code, used for pre-check (✅)
+    assert os.path.exists(saved_file_path), "File was not saved correctly"  # Added check for existence before deletion (➕)
+        
+    # Remove the file
+    file_manager.delete_file_based_on_hash(OBJECTS_DIR, hash_output)
+
+    # Check that the file no longer exists
+    assert not os.path.exists(saved_file_path), "File still exists after deletion"
 
 def test_open_non_existent_file():
     # Generate a random hash that doesn't exist
@@ -150,34 +172,12 @@ def test_compute_hash_non_existent_file():
     # Assert that the output is an empty string for a non-existent file (➕)
     assert hash_output == "", "Expected empty hash output for non-existent file"  # Adjusted expectation (➕)
 
-def test_save_and_delete_file():
-    test_filename = os.path.join(os.getcwd(), "./files/file7.txt")
-    os.makedirs(os.path.dirname(test_filename), exist_ok=True)
-    with open(test_filename, 'w') as f:
-        f.write("This is a test file for save and delete.")
-
-    # Save the file
-    file_manager.save_file(OBJECTS_DIR, test_filename)
-
-    # Compute the hash
-    hash_output = file_manager.compute_sha1(test_filename)
-
-    # Confirm the file exists before deletion (➕)
-    saved_file_path = os.path.join(OBJECTS_DIR, f"{hash_output[:2]}/{hash_output}")  # Existed code, used for pre-check (✅)
-    assert os.path.exists(saved_file_path), "File was not saved correctly"  # Added check for existence before deletion (➕)
-        
-    # Remove the file
-    file_manager.delete_file_based_on_hash(hash_output)
-
-    # Check that the file no longer exists
-    assert not os.path.exists(saved_file_path), "File still exists after deletion"
-
 def test_delete_non_existent_file():
     non_existent_hash = "deadbeef" + "0" * 32  # Random SHA1-like hash
     
     # Attempt to delete a non-existent file
     try:
-        file_manager.delete_file_based_on_hash(non_existent_hash)
+        file_manager.delete_file_based_on_hash(OBJECTS_DIR, non_existent_hash)
     except Exception as e:
         assert False, f"Deleting a non-existent file raised an exception: {e}"
     else:

@@ -12,8 +12,6 @@
 #include <linux/limits.h>
 #include "file_utils.h"
 
-#define HASH_SIZE 40     // SHA-1 hash size (in characters)
-#define BUFFER_SIZE 4096 // Buffer size for file operations
 
 int save_file(const char *root_dir, const char *filename) {
     // Compute the SHA1 hash of the file

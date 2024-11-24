@@ -32,5 +32,5 @@ class FileManager:
     def open_content(self, root_dir, hash_value):
         return self.lib.open_content(root_dir.encode('utf-8'), hash_value.encode('utf-8'))
     
-    def delete_file_based_on_hash(self, hash_value):
-        self.lib.delete_file_based_on_hash(hash_value.encode('utf-8'))
+    def delete_file_based_on_hash(self, root_dir, hash_value):
+        self.lib.delete_file_based_on_hash(root_dir.encode('utf-8'), hash_value.encode('utf-8'))
