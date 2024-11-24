@@ -6,3 +6,4 @@ lib/
 *.so
 objects/
 open_file
+.idea/
