@@ -46,9 +46,9 @@ int save_file(const char *root_dir, const char *filename) {
     if (stat(file_path, &file_stat) == 0) {
         return 0; // File already exists, success
     }
-
     // Copy the file to the new location
     if (copy_file(filename, file_path) != 0) {
+            // TODO: #22 also delete the file if it exists
         return -1; // Indicate failure
     }
 }

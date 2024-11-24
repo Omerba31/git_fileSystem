@@ -4,6 +4,6 @@ __pycache__/
 files/
 hashed_files/
 lib/
-libopenfile.so
+*.so
 objects/
 open_file

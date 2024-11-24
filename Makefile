@@ -28,3 +28,4 @@ clean:
 	docker volume prune -f
 
 .PHONY: build run compile stop remove clean
+

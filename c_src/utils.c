@@ -30,7 +30,6 @@ int copy_file(const char *src, const char *dest)
         fwrite(buffer, 1, bytes_read, dest_file);
         if (ferror(dest_file))
         {
-            perror("Error writing to destination file");
             fclose(source_file);
             fclose(dest_file);
             return 0;
@@ -40,35 +39,21 @@ int copy_file(const char *src, const char *dest)
     fclose(dest_file);
     return 1;
 }
-/*
-int remove_file(const char *file_path)
-{
-    if (remove(file_path) == EXIT_SUCCESS)
-    {
-        printf("Deleted: %s\n", file_path);
-        return EXIT_SUCCESS;
-    }
-    perror("Error deleting file");
-    return EXIT_FAILURE;
-}
-*/
+
 
 int remove_file(const char *file_path)
 {
     // Check if the file exists before attempting removal (➕)
     if (access(file_path, F_OK) != 0)
     {
-        fprintf(stderr, "File not found: %s\n", file_path);
         return -1;
     }
 
     if (remove(file_path) == 0)
     {
-        printf("Deleted: %s\n", file_path);
         return 0;
     }
 
-    fprintf(stderr, "Error deleting file: %s\n", file_path);
     return -1;
 }
 
@@ -76,12 +61,10 @@ int delete_empty_directory(const char *dir_name)
 {
     if (rmdir(dir_name) == EXIT_SUCCESS)
     {
-        printf("Directory %s is now empty and deleted.\n", dir_name);
         return EXIT_SUCCESS;
     }
     else
     {
-        perror("Error deleting directory");
         return EXIT_FAILURE;
     }
 }
