@@ -130,26 +130,6 @@ def test_save_file_same_content_different_name():
     assert os.path.exists(saved_file_path1), f"File {saved_file_path1} does not exist in the database1"
     assert os.path.exists(saved_file_path2), f"File {saved_file_path2} does not exist in the database2"
 
-def test_open_non_existent_file():
-    # Generate a random hash that doesn't exist
-    non_existent_hash = "deadbeef" + "0" * 32  # Random SHA1-like hash
-    
-    # Attempt to open the non-existent file
-    fd = file_manager.open_content(OBJECTS_DIR, non_existent_hash)
-    
-    # Verify that the function returns -1 or an equivalent error code
-    assert fd == -1, "Opening a non-existent file should fail"
-
-def test_compute_hash_non_existent_file():
-    non_existent_file = os.path.join(os.getcwd(), "./files/non_existent_file.txt")
-    print(f"Non-existent file path: {non_existent_file}")
-
-    # Call compute_sha1 and expect it to return an empty string (➕)
-    hash_output = file_manager.compute_sha1(non_existent_file)
-
-    # Assert that the output is an empty string for a non-existent file (➕)
-    assert hash_output == "", "Expected empty hash output for non-existent file"  # Adjusted expectation (➕)
-
 def test_save_and_delete_file():
     test_filename = os.path.join(os.getcwd(), "./files/file7.txt")
     os.makedirs(os.path.dirname(test_filename), exist_ok=True)
@@ -171,6 +151,26 @@ def test_save_and_delete_file():
 
     # Check that the file no longer exists
     assert not os.path.exists(saved_file_path), "File still exists after deletion"
+
+def test_open_non_existent_file():
+    # Generate a random hash that doesn't exist
+    non_existent_hash = "deadbeef" + "0" * 32  # Random SHA1-like hash
+    
+    # Attempt to open the non-existent file
+    fd = file_manager.open_content(OBJECTS_DIR, non_existent_hash)
+    
+    # Verify that the function returns -1 or an equivalent error code
+    assert fd == -1, "Opening a non-existent file should fail"
+
+def test_compute_hash_non_existent_file():
+    non_existent_file = os.path.join(os.getcwd(), "./files/non_existent_file.txt")
+    print(f"Non-existent file path: {non_existent_file}")
+
+    # Call compute_sha1 and expect it to return an empty string (➕)
+    hash_output = file_manager.compute_sha1(non_existent_file)
+
+    # Assert that the output is an empty string for a non-existent file (➕)
+    assert hash_output == "", "Expected empty hash output for non-existent file"  # Adjusted expectation (➕)
 
 def test_delete_non_existent_file():
     non_existent_hash = "deadbeef" + "0" * 32  # Random SHA1-like hash
