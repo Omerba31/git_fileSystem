@@ -9,17 +9,6 @@
 #include <openssl/evp.h>
 #include "file_utils.h"
 
-#define HASH_SIZE 40     // SHA-1 hash size (in characters)
-#define BUFFER_SIZE 4096 // Buffer size for file operations
-#define DIR_NAME_SIZE 2  // Number of characters from hash used for directory name
-
-// Macro for safe index advancement
-#define PATH_ADVANCE(index) do { \
-    if ((index) >= PATH_MAX) { \
-        return -1; \
-    } \
-    (index)++; \
-} while (0)
 
 // Function to open the file based on its hash
 int open_content(const char *root_dir, const char *hash) {

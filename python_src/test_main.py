@@ -167,7 +167,7 @@ def test_save_and_delete_file():
     assert os.path.exists(saved_file_path), "File was not saved correctly"  # Added check for existence before deletion (➕)
         
     # Remove the file
-    file_manager.delete_file_based_on_hash(hash_output)
+    file_manager.delete_file_based_on_hash(OBJECTS_DIR, hash_output)
 
     # Check that the file no longer exists
     assert not os.path.exists(saved_file_path), "File still exists after deletion"
@@ -177,7 +177,7 @@ def test_delete_non_existent_file():
     
     # Attempt to delete a non-existent file
     try:
-        file_manager.delete_file_based_on_hash(non_existent_hash)
+        file_manager.delete_file_based_on_hash(OBJECTS_DIR, non_existent_hash)
     except Exception as e:
         assert False, f"Deleting a non-existent file raised an exception: {e}"
     else:

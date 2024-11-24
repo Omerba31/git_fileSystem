@@ -1,43 +1,58 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <unistd.h>
+#include <errno.h>
+#include <linux/limits.h>
+#include <openssl/evp.h>
 #include "file_utils.h"
 
-void delete_file_based_on_hash(const char *hash)
-{
-    //  TODO: chnge root dir to be function parameter and check pytests working. (like in openfile)
-    const char *root_dir = "./objects"; // Added root directory definition (➕)
-    char dir_name[3];
-    snprintf(dir_name, sizeof(dir_name), "%c%c", hash[0], hash[1]);
+int delete_file_based_on_hash(const char *root_dir, const char *hash){
+    char file_path[PATH_MAX];
+    int i = 0;
 
-    size_t file_path_size = strlen(root_dir) + strlen(dir_name) + strlen(hash) + 3;
-    // TODO :  check with we can remove malloc
-    char *file_path = malloc(file_path_size);
-    if (!file_path)
-    {
-        return;
+    // Copy the root directory path
+    while (root_dir[i] != '\0') {
+        file_path[i] = root_dir[i];
+        PATH_ADVANCE(i);
     }
 
-    size_t dir_path_size = strlen(root_dir) + strlen(dir_name) + 2; // One '/' and null terminator (➕)
-    char *dir_path = malloc(dir_path_size);                         // Allocate memory for full directory path (➕)
-    if (!dir_path)                                                  // Check allocation (➕)
-    {
-        free(file_path);                                 // Free previously allocated file_path (➕)
-        return;
+    // Ensure the root directory path ends with a '/'
+    if (file_path[i - 1] != '/') {
+        file_path[i] = '/';
+        PATH_ADVANCE(i);
     }
 
-    snprintf(file_path, file_path_size, "%s/%s/%s", root_dir, dir_name, hash);
-    snprintf(dir_path, dir_path_size, "%s/%s", root_dir, dir_name);
+    // Add the first DIR_NAME_SIZE characters of the hash to the directory path
+    for (int j = 0; j < DIR_NAME_SIZE; j++) {
+        file_path[i] = hash[j];
+        PATH_ADVANCE(i);
+    }
+    file_path[i] = '/';
+    PATH_ADVANCE(i);
 
-    if (remove_file(file_path) == 0)
-    {
-        if (delete_empty_directory(dir_path) == 0)
-        {
-            printf("Directory deleted successfully: %s\n", dir_path);
+    // Add the full hash to the file path
+    for (int j = 0; j < HASH_SIZE && hash[j] != '\0'; j++) {
+        file_path[i] = hash[j];
+        PATH_ADVANCE(i);
+    }
+
+    // Null-terminate the file path
+    file_path[i] = '\0';
+
+    // Attempt to delete the file.
+    if (unlink(file_path) != 0){
+        return -1;
+    }
+
+    // Attempt to delete the containing directory (if empty)
+    file_path[i - HASH_SIZE - 1] = '\0';
+    if (rmdir(file_path) != 0) {
+        if (errno != ENOTEMPTY) {
+            return -1;
         }
     }
-
-    free(dir_path);
-    free(file_path); 
+    return 0;
 }
