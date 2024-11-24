@@ -9,7 +9,6 @@ OBJECTS_DIR = os.path.join(os.getcwd(), "./objects")
 # Initialize the FileManager with the path to the shared library
 file_manager = FileManager('/workspace/libcaf.so')
 
-
 def test_compute_sha1():
     # Create a test file
     test_filename = os.path.join(os.getcwd(), "./files/file2.txt")
@@ -25,7 +24,6 @@ def test_compute_sha1():
 
     # Check that the hash is not empty
     assert hash_output != "", "Failed to compute SHA1 hash"
-
 
 def test_open_content():
     # Create a test file
@@ -51,7 +49,6 @@ def test_open_content():
     assert content == "This is a test file.", "File content does not match"
 
     # Clean up (file descriptor is automatically closed by the 'with' statement)
-
 
 def test_save_file():
     # Create a test file
@@ -80,7 +77,6 @@ def test_save_file():
 
     print("Test passed: File saved and content verified successfully.")
 
-
 def test_save_same_file_twice():
     test_filename = os.path.join(os.getcwd(), "./files/file4.txt")
     os.makedirs(os.path.dirname(test_filename), exist_ok=True)
@@ -106,7 +102,6 @@ def test_save_same_file_twice():
     assert content == "This is a test file for duplication check.", "File content corrupted after saving twice"
 
 def test_save_file_same_content_different_name():
-    #TODO: THIS TEST IS NOT PASSING. CHECK WAY AND FIX
     content = "This is a test file for identical content."
 
     # Create two files with the same content but different names
@@ -123,12 +118,17 @@ def test_save_file_same_content_different_name():
 
     # Verify the hashes are different since the filenames are different
     assert hash1 != hash2, "Hashes for files with different names should be different"
+    print(f"Hash1: {hash1}, Hash2: {hash2}")
 
-    # Ensure both files are saved in their respective locations
+    file_manager.save_file(OBJECTS_DIR, test_filename1)
+    file_manager.save_file(OBJECTS_DIR, test_filename2)
+
     saved_file_path1 = os.path.join(OBJECTS_DIR, f"{hash1[:2]}/{hash1}")
     saved_file_path2 = os.path.join(OBJECTS_DIR, f"{hash2[:2]}/{hash2}")
-    assert os.path.exists(saved_file_path1), f"File {saved_file_path1} does not exist in the database"
-    assert os.path.exists(saved_file_path2), f"File {saved_file_path2} does not exist in the database"
+
+    # Ensure both files are saved in their respective locations
+    assert os.path.exists(saved_file_path1), f"File {saved_file_path1} does not exist in the database1"
+    assert os.path.exists(saved_file_path2), f"File {saved_file_path2} does not exist in the database2"
 
 def test_open_non_existent_file():
     # Generate a random hash that doesn't exist

@@ -21,6 +21,8 @@ stop:
 
 remove:
 	@docker rm $(CONTAINER_NAME) 2>/dev/null || true
+	sudo rm -r ./files ./objects
+
 
 clean:
 	docker container prune -f
