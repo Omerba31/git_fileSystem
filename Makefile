@@ -27,6 +27,15 @@ clean:
 	docker container prune -f
 	docker image prune -f
 	docker volume prune -f
+	sudo rm -rf ./files ./objects ./workspace/libcaf.so
 
-.PHONY: build run compile stop remove clean
+help:
+	@echo "Available targets:"
+	@echo "  build   - Build the Docker image"
+	@echo "  run     - Run the Docker container"
+	@echo "  compile - Compile the shared library"
+	@echo "  stop    - Stop the Docker container"
+	@echo "  remove  - Remove the Docker container and clean up files"
+	@echo "  clean   - Clean up Docker resources and generated files"
 
+.PHONY: build run compile stop remove clean help
