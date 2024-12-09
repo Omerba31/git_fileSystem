@@ -7,40 +7,23 @@ int compute_sha1(const char *filename, char *output)
     unsigned char buffer[BUFFER_SIZE];
 
     EVP_MD_CTX *mdctx = EVP_MD_CTX_new();
-    if (!mdctx)
-    {
-        perror("Failed to create EVP_MD_CTX");
+    if (!mdctx){
         return -1;
     }
-    if (EVP_DigestInit_ex(mdctx, EVP_sha1(), NULL) != 1)
-    {
-        perror("EVP_DigestInit_ex failed");
-        EVP_MD_CTX_free(mdctx);
-        return -1;
-    }
-
-    // Add filename to the hash input
-    if (EVP_DigestUpdate(mdctx, filename, strlen(filename)) != 1)
-    {
-        perror("EVP_DigestUpdate failed on filename");
+    if (EVP_DigestInit_ex(mdctx, EVP_sha1(), NULL) != 1){
         EVP_MD_CTX_free(mdctx);
         return -1;
     }
 
     FILE *file = fopen(filename, "rb");
-    if (!file)
-    {
-        perror("Failed to open file");
+    if (!file){
         EVP_MD_CTX_free(mdctx);
         return -1;
     }
 
     size_t bytes_read;
-    while ((bytes_read = fread(buffer, 1, BUFFER_SIZE, file)) > 0)
-    {
-        if (EVP_DigestUpdate(mdctx, buffer, bytes_read) != 1)
-        {
-            perror("EVP_DigestUpdate failed on file content");
+    while ((bytes_read = fread(buffer, 1, BUFFER_SIZE, file)) > 0){
+        if (EVP_DigestUpdate(mdctx, buffer, bytes_read) != 1){
             fclose(file);
             EVP_MD_CTX_free(mdctx);
             return -1;
@@ -48,15 +31,12 @@ int compute_sha1(const char *filename, char *output)
     }
     fclose(file);
 
-    if (EVP_DigestFinal_ex(mdctx, hash, &hash_len) != 1)
-    {
-        perror("EVP_DigestFinal_ex failed");
+    if (EVP_DigestFinal_ex(mdctx, hash, &hash_len) != 1){
         EVP_MD_CTX_free(mdctx);
         return -1;
     }
 
-    for (unsigned int i = 0; i < hash_len; i++)
-    {
+    for (unsigned int i = 0; i < hash_len; i++){
         sprintf(output + (i * 2), "%02x", hash[i]);
     }
     output[hash_len * 2] = '\0';
@@ -64,7 +44,7 @@ int compute_sha1(const char *filename, char *output)
     return 0;
 }
 
-int save_file(const char *root_dir, const char *filename)
+int save_content(const char *root_dir, const char *filename)
 {
     if (mkdir(root_dir, 0755) != 0 && errno != EEXIST)
         return -1;
@@ -73,14 +53,13 @@ int save_file(const char *root_dir, const char *filename)
     if (compute_sha1(filename, hash) != 0)
         return -1;
 
-    char file_path[PATH_MAX];
-    if (create_file_path(root_dir, hash, file_path, sizeof(file_path)) != 0)
+    char content_path[PATH_MAX];
+    if (create_content_path(root_dir, hash, content_path, sizeof(content_path)) != 0)
         return -1;
 
-    int fd = open(file_path, O_WRONLY | O_CREAT, 0644);
+    int fd = open(content_path, O_WRONLY | O_CREAT, 0644);
     if (fd < 0)
     {
-        perror("Failed to create file");
         return -1;
     }
 
@@ -90,11 +69,11 @@ int save_file(const char *root_dir, const char *filename)
         return -1;
     }
 
-    if (copy_file(filename, file_path) != 0)
+    if (copy_file(filename, content_path) != 0)
     {
         flock(fd, LOCK_UN);
         close(fd);
-        unlink(file_path);
+        unlink(content_path);
         return -1;
     }
 
@@ -103,13 +82,13 @@ int save_file(const char *root_dir, const char *filename)
     return 0;
 }
 
-int delete_file(const char *root_dir, const char *hash)
+int delete_content(const char *root_dir, const char *hash)
 {
-    char file_path[PATH_MAX];
-    if (create_file_path(root_dir, hash, file_path, sizeof(file_path)) != 0)
+    char content_path[PATH_MAX];
+    if (create_content_path(root_dir, hash, content_path, sizeof(content_path)) != 0)
         return -1;
 
-    int fd = open(file_path, O_RDONLY);
+    int fd = open(content_path, O_RDONLY);
     if (fd < 0)
     {
         if (errno == ENOENT)
@@ -124,7 +103,6 @@ int delete_file(const char *root_dir, const char *hash)
             close(fd);
             return -1;
         }
-        perror("Failed to acquire shared lock");
         close(fd);
         return -1;
     }
@@ -132,7 +110,7 @@ int delete_file(const char *root_dir, const char *hash)
     flock(fd, LOCK_UN);
     close(fd);
 
-    if (unlink(file_path) != 0)
+    if (unlink(content_path) != 0)
         return -1;
 
     char dir_path[PATH_MAX];
@@ -143,18 +121,17 @@ int delete_file(const char *root_dir, const char *hash)
     return 0;
 }
 
-int open_file(const char *root_dir, const char *hash)
+int open_content(const char *root_dir, const char *hash)
 {
-    char file_path[PATH_MAX];
-    if (create_file_path(root_dir, hash, file_path, sizeof(file_path)) != 0)
+    char content_path[PATH_MAX];
+    if (create_content_path(root_dir, hash, content_path, sizeof(content_path)) != 0)
         return -1;
 
-    int fd = open(file_path, O_RDONLY);
+    int fd = open(content_path, O_RDONLY);
     if (fd < 0)
     {
         if (errno == ENOENT)
             return -1;
-        perror("Failed to open file");
         return -1;
     }
 
@@ -204,7 +181,7 @@ int copy_file(const char *src, const char *dest)
     return 0;
 }
 
-int create_file_path(const char *root_dir, const char *hash, char *output_path, size_t output_size)
+int create_content_path(const char *root_dir, const char *hash, char *output_path, size_t output_size)
 {
     if (!root_dir || !hash || !output_path)
         return -1;
