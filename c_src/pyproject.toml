@@ -1,0 +1,14 @@
+[build-system]
+requires = [
+    'setuptools >= 75',
+    'pybind11 >= 2.13.0',
+]
+build-backend = 'setuptools.build_meta'
+
+[project]
+name = 'libcaf'
+version = '0.0.1'
+requires-python = '>=3.10'
+
+[project.optional-dependencies]
+test = ['pytest', 'coverage', 'pytest-cov']

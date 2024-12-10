@@ -1,7 +1,8 @@
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 
 # Set environment variables to avoid interactive prompts during installations
 ENV DEBIAN_FRONTEND=noninteractive
+ENV PIP_BREAK_SYSTEM_PACKAGES 1
 
 WORKDIR /workspace
 
@@ -13,20 +14,11 @@ RUN apt-get update && \
     cmake \
     git \
     python3 \
+    python3-dev \
     python3-pip \
     libssl-dev && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-
+    apt-get clean
 
 # Install necessary Python packages globally
 RUN pip3 install --upgrade pip && \
-    pip3 install pytest coverage ruff
-# Clone, build, and install Google Test and Google Mock
-RUN git clone https://github.com/google/googletest.git /usr/src/googletest && \
-    cd /usr/src/googletest && \
-    cmake -DBUILD_GMOCK=ON . && \
-    make && \
-    make install && \
-    rm -rf /usr/src/googletest
+    pip3 install pytest coverage ruff pybind11

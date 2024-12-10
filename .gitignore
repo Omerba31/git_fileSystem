@@ -7,3 +7,4 @@ lib/
 objects/
 open_file
 .idea/
+*.egg-info/

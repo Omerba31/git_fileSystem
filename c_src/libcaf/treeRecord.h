@@ -14,11 +14,11 @@ public:
     };
     
     const Type type;         // tree or blob or commit
-    const int hash;          // unique identifier for the object
+    const std::string hash;  // unique identifier for the object
     const std::string name;  // name of the record
 
     // Constructor
-    TreeRecord(Type type, int hash, std::string name) 
+    TreeRecord(Type type, std::string hash, std::string name)
         : type(type), hash(hash), name(std::move(name)) {}
 };
 
