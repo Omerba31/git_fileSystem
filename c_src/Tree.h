@@ -1,29 +1,31 @@
 #ifndef TREE_H
 #define TREE_H
 
+#include <map>
 #include <string>
-
-// Enum for type of tree node
-enum class Type {
-    TREE,
-    BLOB,
-    COMMIT
-};
+#include <utility> // for std::move
+#include "treeRecord.h"
 
 class Tree {
 private:
-    const Type type;    // tree or blob                             
-    const int hash; 
-    const std::string name; 
+    // Custom comparator for TreeRecord::name
+    struct NameComparator {
+        bool operator()(const std::string& lhs, const std::string& rhs) const {
+            return lhs < rhs; // Sort strings alphabetically
+    };
+    
+    const std::map<std::string, TreeRecord> records; 
 
 public:
-    // Constructor
-    Tree(Type type, int hash, std::string name);
+    explicit Tree(const std::map<std::string, TreeRecord>& records): records(records) {}
 
-    // Getters
-    Type getType() const;
-    int getHash() const;
-    std::string getName() const;
+    const std::map<std::string, TreeRecord>& getRecords() const {
+        return records;
+    }
+
+    std::map<std::string, TreeRecord>::const_iterator getRecord(const std::string& key) const {
+        return records.find(key);
+    }
 };
 
 #endif // TREE_H
