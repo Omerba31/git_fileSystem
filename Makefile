@@ -22,22 +22,22 @@ build: buildx-check
 run: build
 	@if [ $$(docker ps -a -q -f name=$(CONTAINER_NAME)) ]; then \
 		if [ $$(docker ps -q -f name=$(CONTAINER_NAME)) ]; then \
-			echo "Attaching to existing running container..."; \
-			docker exec -it $(CONTAINER_NAME) $(DOCKER_COMMAND); \
+			echo "Container already running!"; \
 		else \
 			echo "Starting existing stopped container..."; \
 			docker start $(CONTAINER_NAME); \
-			docker exec -it $(CONTAINER_NAME) $(DOCKER_COMMAND); \
 		fi \
 	else \
 		echo "Creating and running new container..."; \
-		docker run -it --name $(CONTAINER_NAME) \
-			-v $(WORKSPACE_DIR):/workspace \
-			$(IMAGE_NAME) $(DOCKER_COMMAND) -c "gcc -shared -o /workspace/libcaf.so -fPIC /workspace/c_src/*.c -lcrypto && $(DOCKER_COMMAND)"; \
+		docker run --detach -it --name $(CONTAINER_NAME) \
+			-v $(WORKSPACE_DIR):/workspace $(IMAGE_NAME); \
 	fi
 
-compile:
-	gcc -shared -o /workspace/libcaf.so -fPIC /workspace/c_src/*.c -lcrypto
+attach: run
+	docker attach $(CONTAINER_NAME);
+
+install_lib:
+	pip install -e c_src;
 
 stop:
 	@docker stop $(CONTAINER_NAME) 2>/dev/null || true
@@ -54,7 +54,7 @@ clean:
 	docker container prune -f
 	docker image prune -f
 	docker volume prune -f
-	sudo rm -rf ./files ./objects ./workspace/libcaf.so
+	sudo rm -rf ./files ./objects c_src/libcaf.egg-info c_src/*.so
 
 help:
 	@echo "Available targets:"
@@ -65,4 +65,4 @@ help:
 	@echo "  remove  - Remove the Docker container and clean up files"
 	@echo "  clean   - Clean up Docker resources and generated files"
 
-.PHONY: build buildx-check run compile stop remove clean help
+.PHONY: build buildx-check run install_lib stop remove clean help

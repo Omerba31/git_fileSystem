@@ -1,34 +1,10 @@
 #ifndef CAF_H
 #define CAF_H
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <linux/limits.h>
-#include <sys/file.h>
-#include <openssl/evp.h>
-#include <time.h>
 
 #define HASH_SIZE 40
-#define BUFFER_SIZE 4096
-#define DIR_NAME_SIZE 2
 
-#define PATH_ADVANCE(index)      \
-    do                           \
-    {                            \
-        if ((index) >= PATH_MAX) \
-        {                        \
-            return -1;           \
-        }                        \
-        (index)++;               \
-    } while (0)
-
-// Function declarations
 int compute_sha1(const char *filename, char *output);
 int open_content(const char *root_dir, const char *hash);
 int save_content(const char *root_dir, const char *filename);
