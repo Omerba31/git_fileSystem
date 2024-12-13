@@ -7,9 +7,12 @@ class Blob{
   public:
     const std::string hash;
 
-    // Constructor
-    Blob(std::string hash) : hash(std::move(hash)) {}
+    // Constructor for lvalue reference
+    Blob(const std::string& hash) : hash(hash) {}
+
+    // Constructor for rvalue reference
+    Blob(std::string&& hash) : hash(std::move(hash)) {}
 
 };
 
-#endif //BLOB_
+#endif //BLOB_H
