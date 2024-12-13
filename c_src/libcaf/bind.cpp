@@ -36,6 +36,12 @@ PYBIND11_MODULE(_libcaf, m) {
     .def_readonly("hash", &Blob::hash);
 
     //TreeRecord
+    py::enum_<TreeRecord::Type>(m, "TreeRecordType")
+    .value("TREE", TreeRecord::Type::TREE)
+    .value("BLOB", TreeRecord::Type::BLOB)
+    .value("COMMIT", TreeRecord::Type::COMMIT)
+    .export_values();
+
     py::class_<TreeRecord>(m, "TreeRecord")
     .def(py::init<TreeRecord::Type, std::string, std::string>())
     .def_readonly("type", &TreeRecord::type)
