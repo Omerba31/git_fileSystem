@@ -11,6 +11,7 @@
 #include <sys/file.h>
 #include <openssl/evp.h>
 #include <time.h>
+#include <string>
 
 #define BUFFER_SIZE 4096
 #define DIR_NAME_SIZE 2
@@ -35,7 +36,7 @@ int compute_sha1(const char *filename, char *output)
     if (!mdctx){
         return -1;
     }
-    if (EVP_DigestInit_ex(mdctx, EVP_sha1(), NULL) != 1){
+    if (EVP_DigestInit_ex(mdctx, EVP_sha1(), nullptr) != 1){
         EVP_MD_CTX_free(mdctx);
         return -1;
     }
@@ -66,6 +67,15 @@ int compute_sha1(const char *filename, char *output)
     }
     output[hash_len * 2] = '\0';
     EVP_MD_CTX_free(mdctx);
+    return 0;
+}
+
+int compute_sha1(const std::string& input, std::string& output) {
+    char hash[HASH_SIZE + 1] = {0};
+    int result = compute_sha1(input.c_str(), hash);
+    if (result != 0)
+        return result;
+    output = std::string(hash);
     return 0;
 }
 
@@ -237,13 +247,13 @@ int create_sub_dir(const char *root_dir, const char *hash)
 
 int lock_file_with_timeout(int fd, int operation, int timeout_sec)
 {
-    time_t start_time = time(NULL);
+    time_t start_time = time(nullptr);
 
     while (flock(fd, operation | LOCK_NB) != 0)
     {
         if (errno == EWOULDBLOCK)
         {
-            if (time(NULL) - start_time >= timeout_sec)
+            if (time(nullptr) - start_time >= timeout_sec)
             {
                 printf("Lock attempt timed out after %d seconds.\n", timeout_sec);
                 return -1; // Timeout reached

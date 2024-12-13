@@ -1,6 +1,7 @@
 import ctypes
 import os
 
+# Add the main project directory to the Python path
 import _libcaf
 from _libcaf import Commit
 
@@ -30,7 +31,6 @@ def open_content(root_dir, hash_value):
 
 def delete_content(root_dir, hash_value):
     _libcaf.delete_content(root_dir, hash_value)
-
 
 all = ['compute_sha1',
        'save_content',

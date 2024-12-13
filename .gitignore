@@ -8,3 +8,5 @@ objects/
 open_file
 .idea/
 *.egg-info/
+c_src/build/
+build/

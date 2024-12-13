@@ -7,16 +7,16 @@
 #include "treeRecord.h"
 
 class Tree {
-private:
+public:
     // Custom comparator for TreeRecord::name
     struct NameComparator {
         bool operator()(const std::string& lhs, const std::string& rhs) const {
             return lhs < rhs; // Sort strings alphabetically
+        }
     };
-    
+
     const std::map<std::string, TreeRecord> records; 
 
-public:
     explicit Tree(const std::map<std::string, TreeRecord>& records): records(records) {}
 
     const std::map<std::string, TreeRecord>& getRecords() const {

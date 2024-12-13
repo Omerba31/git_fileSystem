@@ -2,10 +2,13 @@
 #define CAF_H
 
 #include <unistd.h>
+#include <string>
+#include <cstddef>
 
 #define HASH_SIZE 40
 
 int compute_sha1(const char *filename, char *output);
+int compute_sha1(const std::string& input, std::string& output);
 int open_content(const char *root_dir, const char *hash);
 int save_content(const char *root_dir, const char *filename);
 int delete_content(const char *root_dir, const char *hash);
