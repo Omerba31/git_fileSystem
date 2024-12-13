@@ -20,7 +20,7 @@ RUN python3 -m venv /venv
 
 # Upgrade pip and install necessary Python packages in the virtual environment
 RUN /venv/bin/pip install --upgrade pip && \
-    /venv/bin/pip install pytest pytest-md pytest-emoji coverage ruff pybind11
+    /venv/bin/pip install pytest pytest-md pytest-emoji coverage ruff pybind11 setuptools
 
 # Set the virtual environment as the default Python environment
 ENV PATH="/venv/bin:$PATH"

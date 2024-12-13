@@ -46,7 +46,7 @@ compile:
 	fi
 	docker exec $(CONTAINER_NAME) bash -c "cd c_src && python setup.py build_ext --inplace"
 
-test:
+test: run
 	docker exec $(CONTAINER_NAME) pytest
 
 stop:
