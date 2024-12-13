@@ -1,0 +1,20 @@
+name: Run tests on PR and push to main
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build Docker image and run container
+      run: make build && make run
+    - name: Build libcaf
+      run: make install_lib
+    - uses: pavelzw/pytest-action@v2.1.0
+      name: Run PyTest
+      with:
+        custom-pytest: docker exec dev-container pytest
