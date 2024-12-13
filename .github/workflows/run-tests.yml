@@ -1,4 +1,4 @@
-name: Run tests on PR and push to main
+name: Run tests
 on:
   push:
     branches: [ "main" ]
@@ -6,7 +6,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
