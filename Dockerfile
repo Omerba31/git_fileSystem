@@ -16,4 +16,4 @@ RUN ln -s /usr/bin/python3 /usr/bin/python
 
 # Install necessary Python packages globally
 RUN pip3 install --upgrade pip && \
-    pip3 install pytest coverage ruff pybind11
+    pip3 install pytest pytest-md pytest-emoji coverage ruff pybind11
