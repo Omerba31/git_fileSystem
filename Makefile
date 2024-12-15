@@ -46,13 +46,10 @@ compile:
 	fi
 	docker exec $(CONTAINER_NAME) bash -c "cd c_src && python setup.py build_ext --inplace"
 
-test:
+test: deploy
 	docker exec $(CONTAINER_NAME) pytest
 
-deploy&test: deploy
-	docker exec $(CONTAINER_NAME) pytest
-
-deploy&test_elaborate: deploy
+test-verbose: deploy
 	docker exec $(CONTAINER_NAME) pytest -vv
 
 stop:
@@ -85,8 +82,7 @@ help:
 	@echo "  remove                 - Remove the Docker container and clean up files"
 	@echo "  clean                  - Clean up Docker resources and generated files"
 	@echo "  deploy                 - Run, compile, and install the library"
-	@echo "  test                   - Run tests inside the Docker container without recompiling"
-	@echo "  deploy&test            - Run tests inside the Docker container"
-	@echo "  deploy&test_elaborate  - Run tests inside the Docker container with verbose output"
+	@echo "  test 				    - Run tests inside the Docker container"
+	@echo "  test-verbose           - Run tests inside the Docker container with verbose output"
 
-.PHONY: build buildx-check run attach install_lib compile test deploy&test deploy&test_elaborate stop remove clean deploy help
+.PHONY: build buildx-check run attach install_lib compile test test-verbose stop remove clean deploy help
