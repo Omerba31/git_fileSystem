@@ -46,8 +46,14 @@ compile:
 	fi
 	docker exec $(CONTAINER_NAME) bash -c "cd c_src && python setup.py build_ext --inplace"
 
-test: run
+test:
 	docker exec $(CONTAINER_NAME) pytest
+
+deploy&test: deploy
+	docker exec $(CONTAINER_NAME) pytest
+
+deploy&test_elaborate: deploy
+	docker exec $(CONTAINER_NAME) pytest -vv
 
 stop:
 	@docker stop $(CONTAINER_NAME) 2>/dev/null || true
@@ -60,6 +66,8 @@ remove:
 		sudo rm -rf ./files ./objects; \
 	fi
 
+deploy: run compile install_lib
+
 clean:
 	docker container prune -f
 	docker image prune -f
@@ -68,13 +76,17 @@ clean:
 
 help:
 	@echo "Available targets:"
-	@echo "  build       - Build the Docker image"
-	@echo "  run         - Run the Docker container"
-	@echo "  attach      - Attach to the running Docker container"
-	@echo "  compile     - Compile the shared library in c_src"
-	@echo "  install_lib - Install the library using pip"
-	@echo "  stop        - Stop the Docker container"
-	@echo "  remove      - Remove the Docker container and clean up files"
-	@echo "  clean       - Clean up Docker resources and generated files"
+	@echo "  build                  - Build the Docker image"
+	@echo "  run                    - Run the Docker container"
+	@echo "  attach                 - Attach to the running Docker container"
+	@echo "  compile                - Compile the shared library in c_src"
+	@echo "  install_lib            - Install the library using pip"
+	@echo "  stop                   - Stop the Docker container"
+	@echo "  remove                 - Remove the Docker container and clean up files"
+	@echo "  clean                  - Clean up Docker resources and generated files"
+	@echo "  deploy                 - Run, compile, and install the library"
+	@echo "  test                   - Run tests inside the Docker container without recompiling"
+	@echo "  deploy&test            - Run tests inside the Docker container"
+	@echo "  deploy&test_elaborate  - Run tests inside the Docker container with verbose output"
 
-.PHONY: build buildx-check run install_lib compile stop remove clean help
+.PHONY: build buildx-check run attach install_lib compile test deploy&test deploy&test_elaborate stop remove clean deploy help
