@@ -36,20 +36,13 @@ run: build
 attach: run
 	docker attach $(CONTAINER_NAME);
 
-install_lib: compile
-	docker exec $(CONTAINER_NAME) pip install -e c_src;
-
-compile:
-	@if [ ! $$(docker ps -q -f name=$(CONTAINER_NAME)) ]; then \
-		echo "The container is not running. Run 'make run' first."; \
-		exit 1; \
-	fi
+compile: run
 	docker exec $(CONTAINER_NAME) bash -c "cd c_src && python setup.py build_ext --inplace"
 
-test: deploy
+test_libcaf:
 	docker exec $(CONTAINER_NAME) pytest
 
-test-verbose: deploy
+test_libcaf-v:
 	docker exec $(CONTAINER_NAME) pytest -vv
 
 stop:
@@ -63,7 +56,8 @@ remove:
 		sudo rm -rf ./files ./objects; \
 	fi
 
-deploy: run compile install_lib
+deploy_libcaf: run compile
+	docker exec $(CONTAINER_NAME) pip install -e c_src;
 
 clean:
 	docker container prune -f
@@ -77,12 +71,11 @@ help:
 	@echo "  run                    - Run the Docker container"
 	@echo "  attach                 - Attach to the running Docker container"
 	@echo "  compile                - Compile the shared library in c_src"
-	@echo "  install_lib            - Install the library using pip"
+	@echo "  test_libcaf            - Run tests inside the Docker container"
+	@echo "  test_libcaf-v          - Run tests inside the Docker container with verbose output"
 	@echo "  stop                   - Stop the Docker container"
 	@echo "  remove                 - Remove the Docker container and clean up files"
 	@echo "  clean                  - Clean up Docker resources and generated files"
-	@echo "  deploy                 - Run, compile, and install the library"
-	@echo "  test 				    - Run tests inside the Docker container"
-	@echo "  test-verbose           - Run tests inside the Docker container with verbose output"
+	@echo "  deploy_libcaf          - Run, compile, and install the library"
 
-.PHONY: build buildx-check run attach install_lib compile test test-verbose stop remove clean deploy help
+.PHONY: build buildx-check run attach compile test_libcaf test_libcaf-v stop remove clean deploy-libcaf help
