@@ -36,18 +36,14 @@ run: build
 attach: run
 	docker attach $(CONTAINER_NAME);
 
-install_lib: compile
-	docker exec $(CONTAINER_NAME) pip install -e c_src;
-
-compile:
-	@if [ ! $$(docker ps -q -f name=$(CONTAINER_NAME)) ]; then \
-		echo "The container is not running. Run 'make run' first."; \
-		exit 1; \
-	fi
+compile: run
 	docker exec $(CONTAINER_NAME) bash -c "cd c_src && python setup.py build_ext --inplace"
 
-test: run
+test_libcaf:
 	docker exec $(CONTAINER_NAME) pytest
+
+test_libcaf-v:
+	docker exec $(CONTAINER_NAME) pytest -vv
 
 stop:
 	@docker stop $(CONTAINER_NAME) 2>/dev/null || true
@@ -60,6 +56,9 @@ remove:
 		sudo rm -rf ./files ./objects; \
 	fi
 
+deploy_libcaf: run compile
+	docker exec $(CONTAINER_NAME) pip install -e c_src;
+
 clean:
 	docker container prune -f
 	docker image prune -f
@@ -68,13 +67,15 @@ clean:
 
 help:
 	@echo "Available targets:"
-	@echo "  build       - Build the Docker image"
-	@echo "  run         - Run the Docker container"
-	@echo "  attach      - Attach to the running Docker container"
-	@echo "  compile     - Compile the shared library in c_src"
-	@echo "  install_lib - Install the library using pip"
-	@echo "  stop        - Stop the Docker container"
-	@echo "  remove      - Remove the Docker container and clean up files"
-	@echo "  clean       - Clean up Docker resources and generated files"
+	@echo "  build                  - Build the Docker image"
+	@echo "  run                    - Run the Docker container"
+	@echo "  attach                 - Attach to the running Docker container"
+	@echo "  compile                - Compile the shared library in c_src"
+	@echo "  test_libcaf            - Run tests inside the Docker container"
+	@echo "  test_libcaf-v          - Run tests inside the Docker container with verbose output"
+	@echo "  stop                   - Stop the Docker container"
+	@echo "  remove                 - Remove the Docker container and clean up files"
+	@echo "  clean                  - Clean up Docker resources and generated files"
+	@echo "  deploy_libcaf          - Run, compile, and install the library"
 
-.PHONY: build buildx-check run install_lib compile stop remove clean help
+.PHONY: build buildx-check run attach compile test_libcaf test_libcaf-v stop remove clean deploy-libcaf help

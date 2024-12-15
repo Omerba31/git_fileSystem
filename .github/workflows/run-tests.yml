@@ -13,7 +13,7 @@ jobs:
     - name: Build Docker image and run container
       run: make build && make run
     - name: Build libcaf
-      run: make install_lib
+      run: make deploy_libcaf
     - uses: pavelzw/pytest-action@v2.1.0
       name: Run PyTest
       with:
