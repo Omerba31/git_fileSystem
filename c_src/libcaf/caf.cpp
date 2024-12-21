@@ -26,7 +26,7 @@
         (index)++;               \
     } while (0)
 
-int compute_sha1(const char *filename, char *output)
+int compute_hash(const char *filename, char *output)
 {
     unsigned char hash[EVP_MAX_MD_SIZE];
     unsigned int hash_len;
@@ -70,12 +70,40 @@ int compute_sha1(const char *filename, char *output)
     return 0;
 }
 
-int compute_sha1(const std::string& input, std::string& output) {
-    char hash[HASH_SIZE + 1] = {0};
-    int result = compute_sha1(input.c_str(), hash);
-    if (result != 0)
-        return result;
-    output = std::string(hash);
+
+
+
+int compute_hash(const std::string& input, std::string& output) {
+    unsigned char hash[HASH_SIZE + 1] = {0};
+    EVP_MD_CTX* mdctx = EVP_MD_CTX_new();
+    if (mdctx == nullptr) {
+        return -1;
+    }
+
+    if (EVP_DigestInit_ex(mdctx, EVP_sha1(), nullptr) != 1) {
+        EVP_MD_CTX_free(mdctx);
+        return -1;
+    }
+
+    if (EVP_DigestUpdate(mdctx, input.c_str(), input.size()) != 1) {
+        EVP_MD_CTX_free(mdctx);
+        return -1;
+    }
+
+    unsigned int hash_len;
+    if (EVP_DigestFinal_ex(mdctx, hash, &hash_len) != 1) {
+        EVP_MD_CTX_free(mdctx);
+        return -1;
+    }
+
+    char buf[HASH_SIZE + 1 + 1];
+    buf[HASH_SIZE + 1] = 0;
+    for (unsigned int i = 0; i < hash_len; i++) {
+        snprintf(buf + i * 2, 3, "%02x", hash[i]);
+    }
+    output = std::string(buf);
+    EVP_MD_CTX_free(mdctx);
+
     return 0;
 }
 
@@ -85,7 +113,7 @@ int save_content(const char *root_dir, const char *filename)
         return -1;
 
     char hash[HASH_SIZE + 1];
-    if (compute_sha1(filename, hash) != 0)
+    if (compute_hash(filename, hash) != 0)
         return -1;
 
     char content_path[PATH_MAX];

@@ -9,7 +9,6 @@
 
 // Function declarations for computing hashes
 std::string computeHash(const Blob& blob);
-std::string computeHash(const TreeRecord& record);
 std::string computeHash(const Tree& tree);
 std::string computeHash(const Commit& commit);
 

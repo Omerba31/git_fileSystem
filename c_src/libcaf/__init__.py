@@ -3,11 +3,13 @@ import os
 
 # Add the main project directory to the Python path
 import _libcaf
-from _libcaf import Commit
 
 
-def compute_sha1(filename):
-    result, hash_output = _libcaf.compute_sha1(filename)
+def compute_hash(filename):
+    try:
+        result, hash_output = _libcaf.compute_hash(filename)
+    except UnicodeDecodeError as e:
+        raise FileNotFoundError(f"File '{filename}' not found.")
 
     if result == -1:
         raise FileNotFoundError(f"File '{filename}' not found.")
@@ -32,8 +34,15 @@ def open_content(root_dir, hash_value):
 def delete_content(root_dir, hash_value):
     _libcaf.delete_content(root_dir, hash_value)
 
-all = ['compute_sha1',
-       'save_content',
-       'open_content',
-       'delete_content',
-       'Commit']
+__all__ = [
+    'compute_hash',
+    'save_content',
+    'open_content',
+    'delete_content',
+    'Commit',
+    'computeHash',
+    'Blob',
+    'TreeRecord',
+    'Tree',
+    'TreeRecordType'
+]
