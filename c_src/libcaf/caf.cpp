@@ -1,5 +1,4 @@
 #include "caf.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,23 +10,13 @@
 #include <sys/file.h>
 #include <openssl/evp.h>
 #include <time.h>
-#include <string>
+#include <tuple>
+#include <iostream>
 
 #define BUFFER_SIZE 4096
 #define DIR_NAME_SIZE 2
 
-#define PATH_ADVANCE(index)      \
-    do                           \
-    {                            \
-        if ((index) >= PATH_MAX) \
-        {                        \
-            return -1;           \
-        }                        \
-        (index)++;               \
-    } while (0)
-
-int compute_hash(const char *filename, char *output)
-{
+int compute_hash(const char *filename, char *output){
     unsigned char hash[EVP_MAX_MD_SIZE];
     unsigned int hash_len;
     unsigned char buffer[BUFFER_SIZE];
@@ -70,9 +59,6 @@ int compute_hash(const char *filename, char *output)
     return 0;
 }
 
-
-
-
 int compute_hash(const std::string& input, std::string& output) {
     unsigned char hash[HASH_SIZE + 1] = {0};
     EVP_MD_CTX* mdctx = EVP_MD_CTX_new();
@@ -107,8 +93,7 @@ int compute_hash(const std::string& input, std::string& output) {
     return 0;
 }
 
-int save_content(const char *root_dir, const char *filename)
-{
+int save_content(const char *root_dir, const char *filename){
     if (mkdir(root_dir, 0755) != 0 && errno != EEXIST)
         return -1;
 
@@ -145,8 +130,36 @@ int save_content(const char *root_dir, const char *filename)
     return 0;
 }
 
-int delete_content(const char *root_dir, const char *hash)
-{
+std::tuple<int, int, std::string> save_content(const std::string &root_dir, const std::string &hash, int flags) {
+    // Ensure the root directory exists
+    if (mkdir(root_dir.c_str(), 0755) != 0 && errno != EEXIST) {
+        return {-1, -1, ""};  // Failed to create root directory
+    }
+
+    // Generate the blob path using the hash
+    char content_path[PATH_MAX];
+    if (create_content_path(root_dir.c_str(), hash.c_str(), content_path, sizeof(content_path)) != 0) {
+        return {-1, -1, ""};  // Failed to generate content path
+    }
+
+    // Open the file with specified flags
+    int fd = open(content_path, flags, 0644);  // Use specified flags and permissions
+    if (fd < 0) {
+            std::cerr << "Failed to open file: " << content_path
+              << ", errno: " << strerror(errno) << std::endl;
+        return {-1, -1, ""};  // Failed to open file
+    }
+
+    // Lock the file with a timeout
+    if (lock_file_with_timeout(fd, LOCK_EX, 10) != 0) {  // Exclusive lock with a 10-second timeout
+        close(fd);  // Close the file on failure
+        return {-1, -1, ""};
+    }
+
+    return {0, fd, std::string(content_path)};  // Success: return result, file descriptor, and blob path
+}
+
+int delete_content(const char *root_dir, const char *hash){
     char content_path[PATH_MAX];
     if (create_content_path(root_dir, hash, content_path, sizeof(content_path)) != 0)
         return -1;
@@ -184,8 +197,7 @@ int delete_content(const char *root_dir, const char *hash)
     return 0;
 }
 
-int open_content(const char *root_dir, const char *hash)
-{
+int open_content(const char *root_dir, const char *hash){
     char content_path[PATH_MAX];
     if (create_content_path(root_dir, hash, content_path, sizeof(content_path)) != 0)
         return -1;
@@ -207,8 +219,7 @@ int open_content(const char *root_dir, const char *hash)
     return fd;
 }
 
-int copy_file(const char *src, const char *dest)
-{
+int copy_file(const char *src, const char *dest){
     FILE *source_file = fopen(src, "rb");
     if (!source_file)
         return -1;
@@ -244,8 +255,7 @@ int copy_file(const char *src, const char *dest)
     return 0;
 }
 
-int create_content_path(const char *root_dir, const char *hash, char *output_path, size_t output_size)
-{
+int create_content_path(const char *root_dir, const char *hash, char *output_path, size_t output_size){
     if (!root_dir || !hash || !output_path)
         return -1;
 
@@ -259,8 +269,7 @@ int create_content_path(const char *root_dir, const char *hash, char *output_pat
     return 0;
 }
 
-int create_sub_dir(const char *root_dir, const char *hash)
-{
+int create_sub_dir(const char *root_dir, const char *hash){
     char sub_dir[3] = {hash[0], hash[1], '\0'};
     char sub_dir_path[PATH_MAX];
     int i = snprintf(sub_dir_path, sizeof(sub_dir_path), "%s/%s", root_dir, sub_dir);
@@ -273,8 +282,7 @@ int create_sub_dir(const char *root_dir, const char *hash)
     return 0;
 }
 
-int lock_file_with_timeout(int fd, int operation, int timeout_sec)
-{
+int lock_file_with_timeout(int fd, int operation, int timeout_sec){
     time_t start_time = time(nullptr);
 
     while (flock(fd, operation | LOCK_NB) != 0)

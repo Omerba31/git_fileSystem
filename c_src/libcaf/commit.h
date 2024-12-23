@@ -11,6 +11,9 @@ public:
     const std::string message;   // Commit message
     const std::time_t timestamp; // Timestamp of the commit
 
+    // Default constructor
+    Commit(): treeHash(""), author(""), message(""), timestamp(0) {}
+
     Commit(const std::string& treeHash, const std::string& author, const std::string& message, std::time_t timestamp):
             treeHash(treeHash), author(author), message(message), timestamp(timestamp) {}
 

@@ -1,7 +1,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include "caf.h"
-#include "hashTypes.h" //containes everything needed
+#include "hashTypes.h" 
+#include "object_io.h" 
 
 using namespace std;
 namespace py = pybind11;
@@ -15,17 +16,21 @@ PYBIND11_MODULE(_libcaf, m) {
         char hash[HASH_SIZE + 1]; // Buffer to store the hash
         int result = compute_hash(filename.c_str(), hash);
         return std::make_pair(result, std::string(hash));
-    }, py::arg("filename"));
+    }, py::arg("filename"));;
 
     m.def("open_content", &open_content);
-    m.def("save_content", &save_content);
+    m.def("save_content", py::overload_cast<const char *, const char *>(&save_content), py::arg("root_dir"), py::arg("filename"));
+    m.def("save_content", py::overload_cast<const std::string &, const std::string &, int>(&save_content), py::arg("root_dir"), py::arg("hash"), py::arg("flags"));  
     m.def("delete_content", &delete_content);
 
-    //hashTypes
+    // hashTypes
     m.def("computeHash", py::overload_cast<const Blob&>(&computeHash), py::arg("blob"));
     m.def("computeHash", py::overload_cast<const Tree&>(&computeHash), py::arg("tree"));
     m.def("computeHash", py::overload_cast<const Commit&>(&computeHash), py::arg("commit"));
 
+    // object_io
+    m.def("save_commit", &save_commit);
+    m.def("load_commit", &load_commit);
 
 //classess
 

@@ -5,7 +5,7 @@ import time
 
 import libcaf
 #TODO:checck with @ido to see if this is the correct import
-from _libcaf import compute_hash, Commit, computeHash, Blob, TreeRecord, Tree, TreeRecordType
+from _libcaf import compute_hash, Commit, computeHash, Blob, TreeRecord, Tree, TreeRecordType, load_commit, save_commit, save_content, open_content, delete_content
 
 OBJECTS_DIR = os.path.join(os.getcwd(), "./objects")
 INPUT_DIR = "./files"
@@ -17,7 +17,6 @@ def create_test_file(dir_path, filename, content):
     with open(full_path, 'w') as file:
         file.write(content)
     return full_path
-
 
 def test_compute_hash():
     test_filename = "test_compute_hash_test.txt"
@@ -33,7 +32,6 @@ def test_compute_hash():
     # Verify the hash matches the expected result
     assert hash_output == expected_hash, f"Expected hash '{expected_hash}', but got '{hash_output}'"
 
-
 def test_save_content():
     test_filename = "test_save_content_test.txt"
     content = "Save content test: this content will be saved and verified"
@@ -48,7 +46,6 @@ def test_save_content():
         saved_content = saved_file.read()
     assert saved_content == content, "Saved content does not match the original"
 
-
 def test_open_content():
     test_filename = "test_open_content_test.txt"
     content = "Open content test: this content will be opened and read"
@@ -60,7 +57,6 @@ def test_open_content():
     with libcaf.open_content(OBJECTS_DIR, hash_output) as file:
         file_content = file.read()
     assert file_content == content, "Content mismatch on open"
-
 
 def test_save_and_delete_content():
     test_filename = "test_save_and_delete_content_test.txt"
@@ -75,7 +71,6 @@ def test_save_and_delete_content():
     libcaf.delete_content(OBJECTS_DIR, hash_output)
     assert not os.path.exists(saved_file_path), "Content still exists after deletion"
 
-
 def test_open_non_existent_file():
     non_existent_hash = "deadbeef" + "0" * 32
     try:
@@ -84,7 +79,6 @@ def test_open_non_existent_file():
         assert str(e) == f"Failed to open content with hash '{non_existent_hash}' in directory '{OBJECTS_DIR}'"
     else:
         assert False, "Expected OSError was not raised"
-
 
 def test_compute_hash_non_existent_file():
     non_existent_file = os.path.join(os.getcwd(), "./files/test_compute_hash_non_existent_file.txt")
@@ -95,7 +89,6 @@ def test_compute_hash_non_existent_file():
     else:
         assert False, "Expected FileNotFoundError was not raised"
 
-
 def test_delete_non_existent_file():
     non_existent_hash = "deadbeef" + "0" * 32
     try:
@@ -104,7 +97,6 @@ def test_delete_non_existent_file():
         assert False, f"Deleting a non-existent content raised an exception: {e}"
     else:
         assert True, "Deleting a non-existent content should silently succeed"
-
 
 def test_save_large_file():
     test_filename = "test_save_large_file_test.txt"
@@ -119,7 +111,6 @@ def test_save_large_file():
     with open(saved_file_path, 'r') as saved_file:
         saved_content = saved_file.read()
     assert saved_content == content, "Saved large content does not match the original"
-
 
 def test_concurrent_read_and_write():
     test_filename = "test_concurrent_read_and_write_test.txt"
@@ -145,7 +136,6 @@ def test_concurrent_read_and_write():
     save_thread.join()
     read_thread.join()
 
-
 def test_concurrent_writes():
     test_filename = "test_concurrent_writes_test.txt"
     content = "Concurrent writes test: content to simulate multiple saves"
@@ -165,7 +155,6 @@ def test_concurrent_writes():
     hash_output = libcaf.compute_hash(test_filepath)
     saved_file_path = os.path.join(OBJECTS_DIR, f"{hash_output[:2]}/{hash_output}")
     assert os.path.exists(saved_file_path), "File should exist after concurrent writes"
-
 
 def test_concurrent_delete():
     test_filename = "test_concurrent_delete_test.txt"
@@ -192,7 +181,6 @@ def test_concurrent_delete():
 
     saved_file_path = os.path.join(OBJECTS_DIR, f"{hash_output[:2]}/{hash_output}")
     assert not os.path.exists(saved_file_path), "File still exists after delete operation"
-
 
 def test_multi_file_lock_contention():
     test_filename1 = "test_multi_lock_contention_1.txt"
@@ -223,7 +211,6 @@ def test_multi_file_lock_contention():
 
     assert os.path.exists(saved_file_path1), "File 1 not saved correctly"
     assert os.path.exists(saved_file_path2), "File 2 not saved correctly"
-
 
 
 # hashTypes tests
@@ -278,7 +265,6 @@ def test_same_commit_objects_get_same_hash():
     # Verify the hashes are the same
     assert hash_output1 == hash_output2, "Hashes for identical Commit objects do not match"
 
-
 def test_same_tree_objects_get_same_hash():
     # Create TreeRecord objects
     record1 = TreeRecord(TreeRecordType.TREE, "1234567890abcdef", "record1")
@@ -294,8 +280,6 @@ def test_same_tree_objects_get_same_hash():
 
     # Verify the hashes are the same
     assert hash_output1 == hash_output2, "Hashes for identical Tree objects do not match"
-
-
 
 def test_different_hashes_for_different_blobs():
     # Create two different Blob objects
@@ -337,3 +321,21 @@ def test_different_hashes_for_different_commits():
 
     # Verify the hashes are different
     assert hash_output1 != hash_output2, "Hashes for different Commit objects are the same"
+
+
+# object_io tests
+
+def test_load_commit():
+    commit = Commit("treehash123", "Author", "Commit message", 1234567890)
+
+    save_result = libcaf.save_commit(OBJECTS_DIR, commit)
+    assert save_result == 0, "Failed to save commit"
+
+    commit_hash = libcaf.computeHash(commit)
+
+    load_result, loaded_commit = libcaf.load_commit(OBJECTS_DIR, commit_hash)
+    assert load_result == 0, "load_commit failed"
+    assert loaded_commit.treeHash == commit.treeHash, "TreeHash mismatch in loaded commit"
+    assert loaded_commit.author == commit.author, "Author mismatch in loaded commit"
+    assert loaded_commit.message == commit.message, "Message mismatch in loaded commit"
+    assert loaded_commit.timestamp == commit.timestamp, "Timestamp mismatch in loaded commit"

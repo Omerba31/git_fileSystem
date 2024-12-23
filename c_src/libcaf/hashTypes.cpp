@@ -1,9 +1,5 @@
-#include "Blob.h"
-#include "treeRecord.h"
-#include "Tree.h"
-#include "commit.h"
-#include "caf.h" // For compute_sha1
-#include <string>
+#include "hashTypes.h"
+#include "caf.h"
 #include <sstream>
 #include <stdexcept>
 
@@ -11,7 +7,6 @@
 std::string computeHash(const Blob& blob) {
     return blob.hash;
 }
-
 
 // Compute hash for Tree
 std::string computeHash(const Tree& tree) {
@@ -27,7 +22,6 @@ std::string computeHash(const Tree& tree) {
 
     return treeHash;
 }
-
 
 // Compute hash for Commit
 std::string computeHash(const Commit& commit) {

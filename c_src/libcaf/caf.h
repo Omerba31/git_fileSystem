@@ -5,12 +5,14 @@
 #include <string>
 #include <cstddef>
 
+
 #define HASH_SIZE 40
 
 int compute_hash(const char *filename, char *output);
 int compute_hash(const std::string& input, std::string& output);
 int open_content(const char *root_dir, const char *hash);
 int save_content(const char *root_dir, const char *filename);
+std::tuple<int, int, std::string> save_content(const std::string &root_dir, const std::string &hash, int flags);
 int delete_content(const char *root_dir, const char *hash);
 int copy_file(const char *src, const char *dest);
 int create_content_path(const char *root_dir, const char *hash, char *output_path, size_t output_size);
