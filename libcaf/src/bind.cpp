@@ -31,6 +31,8 @@ PYBIND11_MODULE(_libcaf, m) {
     // object_io
     m.def("save_commit", &save_commit);
     m.def("load_commit", &load_commit);
+    m.def("save_tree", &save_tree);
+    m.def("load_tree", &load_tree);
 
 //classess
 
@@ -44,11 +46,14 @@ PYBIND11_MODULE(_libcaf, m) {
     .value("COMMIT", TreeRecord::Type::COMMIT)
     .export_values();
 
-    py::class_<TreeRecord>(m, "TreeRecord")
+py::class_<TreeRecord>(m, "TreeRecord")
     .def(py::init<TreeRecord::Type, std::string, std::string>())
     .def_readonly("type", &TreeRecord::type)
     .def_readonly("hash", &TreeRecord::hash)
-    .def_readonly("name", &TreeRecord::name);
+    .def_readonly("name", &TreeRecord::name)
+    .def("__eq__", [](const TreeRecord &self, const TreeRecord &other) {
+        return self.type == other.type && self.hash == other.hash && self.name == other.name;
+    });
 
     py::class_<Tree>(m, "Tree")
     .def(py::init<const std::map<std::string, TreeRecord>&>())

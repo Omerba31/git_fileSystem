@@ -17,9 +17,8 @@ public:
     const std::string hash;  // unique identifier for the object
     const std::string name;  // name of the record
 
-    // Constructor
     TreeRecord(Type type, std::string hash, std::string name)
-        : type(type), hash(hash), name(std::move(name)) {}
+        : type(type), hash(hash), name(name) {}
 };
 
 #endif // TREERECORD_H

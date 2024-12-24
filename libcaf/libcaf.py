@@ -105,12 +105,35 @@ def load_commit(root_dir: str | Path, hash_value) -> Commit:
 
     return commit
 
+def save_tree(root_dir: str | Path, tree: Tree) -> None:
+    if isinstance(root_dir, Path):
+        root_dir = str(root_dir)
+
+    result = _libcaf.save_tree(root_dir, tree)
+
+    if result != 0:
+        raise OSError(f"Failed to save Tree in directory '{root_dir}'")
+
+
+def load_tree(root_dir: str | Path, hash_value) -> Tree:
+    if isinstance(root_dir, Path):
+        root_dir = str(root_dir)
+
+    result, tree = _libcaf.load_tree(root_dir, hash_value)
+
+    if result != 0:
+        raise OSError(f"Failed to load Tree with hash '{hash_value}' in directory '{root_dir}'")
+
+    return tree
+
 
 __all__ = [
     'compute_hash',
     'save_content',
     'save_commit',
     'load_commit',
+    'save_tree',
+    'load_tree',
     'open_content',
     'delete_content',
     'Commit',
