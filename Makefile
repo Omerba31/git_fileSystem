@@ -37,7 +37,7 @@ attach: run
 	docker attach $(CONTAINER_NAME);
 
 compile: run
-	docker exec $(CONTAINER_NAME) bash -c "cd c_src && python setup.py build_ext --inplace"
+	docker exec $(CONTAINER_NAME) bash -c "cd libcaf && python setup.py develop"
 
 test_libcaf:
 	docker exec $(CONTAINER_NAME) pytest
@@ -57,20 +57,20 @@ remove:
 	fi
 
 deploy_libcaf: run compile
-	docker exec $(CONTAINER_NAME) pip install -e c_src;
+	docker exec $(CONTAINER_NAME) pip install -e libcaf;
 
 clean:
 	docker container prune -f
 	docker image prune -f
 	docker volume prune -f
-	sudo rm -rf ./files ./objects c_src/libcaf.egg-info c_src/*.so
+	sudo rm -rf libcaf/libcaf.egg-info libcaf/*.so libcaf/build
 
 help:
 	@echo "Available targets:"
 	@echo "  build                  - Build the Docker image"
 	@echo "  run                    - Run the Docker container"
 	@echo "  attach                 - Attach to the running Docker container"
-	@echo "  compile                - Compile the shared library in c_src"
+	@echo "  compile                - Compile the shared library in libcaf"
 	@echo "  test_libcaf            - Run tests inside the Docker container"
 	@echo "  test_libcaf-v          - Run tests inside the Docker container with verbose output"
 	@echo "  stop                   - Stop the Docker container"
