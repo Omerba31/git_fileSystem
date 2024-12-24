@@ -2,7 +2,7 @@ from libcaf import Commit, computeHash, load_commit, save_commit, load_tree, sav
 
 
 def test_save_load_commit(temp_repo):
-    commit = Commit("treehash123", "Author", "Commit message", 1234567890)
+    commit = Commit("treehash123", "Author", "Commit message", 1234567890, "commithash123parent")
     commit_hash = computeHash(commit)
 
     save_commit(temp_repo, commit)
@@ -12,6 +12,20 @@ def test_save_load_commit(temp_repo):
     assert loaded_commit.author == commit.author
     assert loaded_commit.message == commit.message
     assert loaded_commit.timestamp == commit.timestamp
+    assert loaded_commit.parent == commit.parent
+    
+def test_save_load_commit_with_none_parent(temp_repo):
+    commit_none_parent = Commit("commithash456", "Author", "Commit message", 1234567890, None)
+    commit_none_parent_hash = computeHash(commit_none_parent)
+
+    save_commit(temp_repo, commit_none_parent)
+    loaded_commit_none_parent = load_commit(temp_repo, commit_none_parent_hash)
+
+    assert loaded_commit_none_parent.treeHash == commit_none_parent.treeHash
+    assert loaded_commit_none_parent.author == commit_none_parent.author
+    assert loaded_commit_none_parent.message == commit_none_parent.message
+    assert loaded_commit_none_parent.timestamp == commit_none_parent.timestamp
+    assert loaded_commit_none_parent.parent == commit_none_parent.parent
 
 def test_save_load_tree(temp_repo):
     records = {

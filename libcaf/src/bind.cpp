@@ -46,7 +46,7 @@ PYBIND11_MODULE(_libcaf, m) {
     .value("COMMIT", TreeRecord::Type::COMMIT)
     .export_values();
 
-py::class_<TreeRecord>(m, "TreeRecord")
+    py::class_<TreeRecord>(m, "TreeRecord")
     .def(py::init<TreeRecord::Type, std::string, std::string>())
     .def_readonly("type", &TreeRecord::type)
     .def_readonly("hash", &TreeRecord::hash)
@@ -60,9 +60,10 @@ py::class_<TreeRecord>(m, "TreeRecord")
     .def("get_records", &Tree::getRecords);
 
     py::class_<Commit>(m, "Commit")
-        .def(py::init<const string &, const string&, const string&, time_t>())
+        .def(py::init<const string &, const string&, const string&, time_t, const std::optional<std::string>&>())
         .def_readonly("treeHash", &Commit::treeHash)
         .def_readonly("author", &Commit::author)
         .def_readonly("message", &Commit::message)
-        .def_readonly("timestamp", &Commit::timestamp);
+        .def_readonly("timestamp", &Commit::timestamp)
+        .def_readonly("parent", &Commit::parent);
 }

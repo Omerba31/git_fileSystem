@@ -74,7 +74,17 @@ int save_commit(const std::string &root_dir, const Commit &commit) {
     if (write(fd, &commit.timestamp, sizeof(commit.timestamp)) != sizeof(commit.timestamp)) {
         return cleanup(fd, root_dir, commit_hash, true);
     }
-
+    if (commit.parent) {
+        if (!write_with_length(fd, *commit.parent)) {
+            return cleanup(fd, root_dir, commit_hash, true);
+        }
+    } else {
+        // If parent doesnt exists write 0 length string
+        uint32_t length = 0;
+        if (write(fd, &length, sizeof(length)) != sizeof(length)) {
+            return cleanup(fd, root_dir, commit_hash, true);
+        }
+    }
     // Cleanup without deleting content
     return cleanup(fd, root_dir, commit_hash, false);
 }
@@ -107,8 +117,14 @@ std::pair<int, Commit> load_commit(const std::string &root_dir, const std::strin
         return {-1, Commit()};
     }
 
+    std::string parent;
+    if (!read_length_prefixed_string(fd, parent)) {
+        cleanup(fd, root_dir, hash, true);
+        return {-1, Commit()};
+    }
+
     cleanup(fd, root_dir, hash, false);
-    Commit commit(treehash, author, message, timestamp);
+    Commit commit(treehash, author, message, timestamp, parent.empty() ? std::nullopt : std::make_optional(parent));
     return {0, commit};
 }
 

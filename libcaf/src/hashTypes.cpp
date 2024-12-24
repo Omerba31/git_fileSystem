@@ -26,7 +26,7 @@ std::string computeHash(const Tree& tree) {
 // Compute hash for Commit
 std::string computeHash(const Commit& commit) {
     std::ostringstream oss;
-    oss << commit.treeHash << commit.author << commit.message << commit.timestamp;
+    oss << commit.treeHash << commit.author << commit.message << commit.timestamp <<commit.parent.value_or("");
 
     std::string commitHash;
     if (compute_hash(oss.str(), commitHash) != 0)
