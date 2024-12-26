@@ -12,8 +12,8 @@ jobs:
     - uses: actions/checkout@v4
     - name: Build Docker image and run container
       run: make build && make run
-    - name: Build libcaf
-      run: make deploy_libcaf
+    - name: Install caf app and libcaf
+      run: make deploy
     - uses: pavelzw/pytest-action@v2.1.0
       name: Run PyTest
       with:

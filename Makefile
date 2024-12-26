@@ -39,11 +39,22 @@ attach: run
 compile: run
 	docker exec $(CONTAINER_NAME) bash -c "cd libcaf && python setup.py develop"
 
-test_libcaf:
-	docker exec $(CONTAINER_NAME) pytest
+deploy_libcaf: compile
+	docker exec $(CONTAINER_NAME) pip install -e libcaf;
 
-test_libcaf-v:
-	docker exec $(CONTAINER_NAME) pytest -vv
+deploy_caf:
+	docker exec $(CONTAINER_NAME) pip install -e caf;
+
+deploy: deploy_libcaf deploy_caf;
+
+test: deploy
+	docker exec $(CONTAINER_NAME) pytest tests
+
+test_libcaf: deploy_libcaf
+	docker exec $(CONTAINER_NAME) pytest tests/libcaf
+
+test_caf: deploy_caf
+	docker exec $(CONTAINER_NAME) pytest tests/caf
 
 stop:
 	@docker stop $(CONTAINER_NAME) 2>/dev/null || true
@@ -56,14 +67,12 @@ remove:
 		sudo rm -rf ./files ./objects; \
 	fi
 
-deploy_libcaf: run compile
-	docker exec $(CONTAINER_NAME) pip install -e libcaf;
-
 clean:
 	docker container prune -f
 	docker image prune -f
 	docker volume prune -f
 	sudo rm -rf libcaf/libcaf.egg-info libcaf/*.so libcaf/build
+	sudo rm -rf caf.egg-info
 
 help:
 	@echo "Available targets:"
@@ -71,11 +80,13 @@ help:
 	@echo "  run                    - Run the Docker container"
 	@echo "  attach                 - Attach to the running Docker container"
 	@echo "  compile                - Compile the shared library in libcaf"
-	@echo "  test_libcaf            - Run tests inside the Docker container"
-	@echo "  test_libcaf-v          - Run tests inside the Docker container with verbose output"
+	@echo "  test                   - Run all tests inside the Docker container"
+	@echo "  test_caf               - Run tests for the CLI app inside the Docker container"
+	@echo "  test_libcaf            - Run tests for the library inside the Docker container"
 	@echo "  stop                   - Stop the Docker container"
 	@echo "  remove                 - Remove the Docker container and clean up files"
 	@echo "  clean                  - Clean up Docker resources and generated files"
 	@echo "  deploy_libcaf          - Run, compile, and install the library"
+	@echo "  deploy_caf             - Install the CLI application"
 
-.PHONY: build buildx-check run attach compile test_libcaf test_libcaf-v stop remove clean deploy-libcaf help
+.PHONY: build buildx-check run attach compile test test_caf test_libcaf stop remove clean deploy_libcaf deploy_caf help
