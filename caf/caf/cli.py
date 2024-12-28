@@ -19,7 +19,7 @@ def cli():
                     'help': 'path to the working directory of the repository',
                     'default': '.'
                 },
-                'repo_path': {
+                'repo_dir': {
                     'type': str,
                     'help': 'name of the repository directory',
                     'default': '.caf'
