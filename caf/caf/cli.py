@@ -1,8 +1,21 @@
 import argparse
 import sys
+from libcaf.constants import DEFAULT_REPO_DIR
 
 import caf.cli_commands as cli_commands
 
+_repo_args = {
+    'working_dir_path': {
+        'type': str,
+        'help': 'path to the working directory of the repository',
+        'default': '.'
+    },
+    'repo_dir': {
+        'type': str,
+        'help': 'name of the repository directory',
+        'default': str(DEFAULT_REPO_DIR)
+    }
+}
 
 def cli():
     parser = argparse.ArgumentParser(description="CAF Command Line Interface")
@@ -14,32 +27,45 @@ def cli():
         'init': {
             'func': cli_commands.init,
             'args': {
-                'working_dir_path': {
-                    'type': str,
-                    'help': 'path to the working directory of the repository',
-                    'default': '.'
-                },
-                'repo_dir': {
-                    'type': str,
-                    'help': 'name of the repository directory',
-                    'default': '.caf'
-                }
+                **_repo_args
             },
             'help': 'initialize a new CAF repository'
         },
+        'hash-file': {
+            'func': cli_commands.hash_file,
+            'args': {
+                'path': {
+                    'type': str,
+                    'help': 'path of the file to hash'
+                },
+                **_repo_args,
+                'write': {
+                    'type': None,
+                    'help': 'save the file to the repository',
+                    'default': False,
+                    'flag': True,
+                    'short_flag': 'w'
+                }
+            },
+            'help': 'print the hash of the file and optionally save it to the repository'
+        },
     }
 
-    # # Register commands
+    # Register commands
     for command_name, command_info in commands.items():
         command_sub = commands_sub.add_parser(command_name, help=command_info['help'])
         for arg_name, arg_info in command_info['args'].items():
             arg_type = arg_info['type']
             arg_help = arg_info['help']
-            arg_default = arg_info['default']
+            arg_default = arg_info.get('default')
+            arg_flag = arg_info.get('flag', False)
 
-            if arg_default:
-                command_sub.add_argument(f'--{arg_name}', type=arg_type,
-                                         help=f'{arg_help} (default: %(default)s)',
+            if arg_flag:
+                arg_short_flag = arg_info['short_flag']
+                command_sub.add_argument(f'-{arg_short_flag}', f'--{arg_name}', help=arg_help, action='store_true',
+                                         default=arg_default)
+            elif arg_default is not None:
+                command_sub.add_argument(f'--{arg_name}', type=arg_type, help=f'{arg_help} (default: %(default)s)',
                                          default=arg_default)
             else:
                 command_sub.add_argument(arg_name, type=arg_type, help=arg_help)
