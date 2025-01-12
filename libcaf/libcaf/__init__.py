@@ -6,7 +6,7 @@ from typing import IO, Tuple, overload
 import _libcaf
 from _libcaf import (
     Commit,
-    computeHash,
+    hash_object,
     Blob,
     TreeRecord,
     Tree,
@@ -14,30 +14,18 @@ from _libcaf import (
 )
 
 
-def compute_hash(filename: str | Path) -> str:
+def hash_file(filename: str | Path) -> str:
     if isinstance(filename, Path):
         filename = str(filename)
 
-    try:
-        result, hash_output = _libcaf.compute_hash(filename)
-    except UnicodeDecodeError:
-        raise FileNotFoundError(f"File '{filename}' not found.")
-
-    if result == -1:
-        raise FileNotFoundError(f"File '{filename}' not found.")
-    if result != 0:
-        errno = ctypes.get_errno()
-        error_message = f"Failed to compute SHA1 for file '{filename}'. Error code: {errno}, Description: {os.strerror(errno)}"
-        raise OSError(errno, error_message)
-
-    return hash_output
+    return _libcaf.hash_file(filename)
 
 
-def open_content(root_dir, hash_value) -> IO:
+def open_content_for_reading_fd(root_dir, hash_value) -> IO:
     if isinstance(root_dir, Path):
         root_dir = str(root_dir)
 
-    fd = _libcaf.open_content(root_dir, hash_value)
+    fd = _libcaf.open_content_for_reading_fd(root_dir, hash_value)
 
     if fd == -1:
         raise OSError(f"Failed to open content with hash '{hash_value}' in directory '{root_dir}'")
@@ -53,16 +41,16 @@ def delete_content(root_dir: str | Path, hash_value: str) -> None:
 
 
 @overload
-def save_content(root_dir: str | Path, filename: str | Path) -> None:
+def save_file_content(root_dir: str | Path, filename: str | Path) -> None:
     ...
 
 
 @overload
-def save_content(root_dir: str | Path, hash_value: str, flags: int) -> Tuple[IO, Path]:
+def save_file_content(root_dir: str | Path, hash_value: str, flags: int) -> Tuple[IO, Path]:
     ...
 
 
-def save_content(root_dir: str | Path, filename_or_hash: str | Path, flags: int = None) -> \
+def save_file_content(root_dir: str | Path, filename_or_hash: str | Path, flags: int = None) -> \
         Tuple[IO, Path] | None:
     if isinstance(root_dir, Path):
         root_dir = str(root_dir)
@@ -71,12 +59,12 @@ def save_content(root_dir: str | Path, filename_or_hash: str | Path, flags: int 
         if isinstance(filename_or_hash, Path):
             filename_or_hash = str(filename_or_hash)
 
-        _libcaf.save_content(root_dir, filename_or_hash)
+        _libcaf.save_file_content(root_dir, filename_or_hash)
     else:
         if isinstance(filename_or_hash, Path):
             raise ValueError("Filename cannot be a Path object when saving content with hash and flags")
 
-        result, fd, blob_path = _libcaf.save_content(root_dir, filename_or_hash, flags)
+        result, fd, blob_path = _libcaf.save_file_content(root_dir, filename_or_hash, flags)
 
         if result != 0:
             raise OSError(f"Failed to save content with hash '{filename_or_hash}' in directory '{root_dir}'")
@@ -128,16 +116,16 @@ def load_tree(root_dir: str | Path, hash_value) -> Tree:
 
 
 __all__ = [
-    'compute_hash',
-    'save_content',
+    'hash_file',
+    'save_file_content',
     'save_commit',
     'load_commit',
     'save_tree',
     'load_tree',
-    'open_content',
+    'open_content_for_reading_fd',
     'delete_content',
     'Commit',
-    'computeHash',
+    'hash_object',
     'Blob',
     'TreeRecord',
     'Tree',
