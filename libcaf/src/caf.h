@@ -17,6 +17,7 @@ int lock_file_with_timeout(int fd, int operation, int timeout_sec);
 int create_sub_dir(const std::string& content_root_dir, const std::string& hash);
 int create_content_path(const std::string& content_root_dir, const std::string& hash, char* output_path, size_t output_size);
 int copy_file(const std::string& src, const std::string& dest);
+void close_content_fd(const int content_fd);
 
 
 #endif // CAF_H

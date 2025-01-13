@@ -1,7 +1,7 @@
 import hashlib
 import threading
 import time
-from libcaf import hash_file, delete_content, open_fd_for_reading_content, save_file_content, open_fd_for_saving_content
+from libcaf import hash_file, delete_content, open_fd_for_reading_content, save_file_content, open_fd_for_saving_content, close_content_fd
 from pytest import mark
 
 
@@ -125,3 +125,28 @@ class TestContent:
 
         saved_file_path = temp_repo / f"{file_hash[:2]}/{file_hash}"
         assert not saved_file_path.exists()
+
+    def test_close_content_fd(self, temp_repo, temp_content):
+        file, expected_content = temp_content
+
+        file_hash = hash_file(file)
+        save_file_content(temp_repo, file)
+
+        fd = open_fd_for_reading_content(temp_repo, file_hash)
+        assert fd is not None
+
+        close_content_fd(fd)
+
+        try:
+            fd.read()
+        except OSError:
+            pass
+        else:
+            assert False, "Expected OSError not raised"
+
+        try:
+            close_content_fd(fd)
+        except ValueError:
+            pass
+        else:
+            assert False, "Expected ValueError not raised"

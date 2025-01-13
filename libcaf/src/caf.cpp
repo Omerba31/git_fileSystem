@@ -305,3 +305,21 @@ int lock_file_with_timeout(int fd, int operation, int timeout_sec){
 
     return 0;
 }
+
+void close_content_fd(const int content_fd) {
+    if (content_fd < 0) {
+        throw std::invalid_argument("Invalid file descriptor");
+    }
+
+    if (flock(content_fd, LOCK_UN) != 0) {
+        throw std::runtime_error("Failed to unlock file descriptor");
+    }
+
+    if (fsync(content_fd) != 0) {
+        throw std::runtime_error("Failed to flush file descriptor to disk");
+    }
+
+    if (close(content_fd) != 0) {
+        throw std::runtime_error("Failed to close file descriptor");
+    }
+}

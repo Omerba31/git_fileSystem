@@ -80,6 +80,8 @@ def save_file_content(root_dir: str | Path, filename_or_hash: str | Path, flags:
 
         return os.fdopen(fd, 'w'), Path(blob_path)
 
+def close_content_fd(fd: IO) -> None:
+    _libcaf.close_content_fd(fd.fileno())
 
 def save_commit(root_dir: str | Path, commit) -> None:
     if isinstance(root_dir, Path):
@@ -133,6 +135,7 @@ __all__ = [
     'load_tree',
     'open_fd_for_reading_content',
     'delete_content',
+    'close_content_fd',
     'Commit',
     'hash_object',
     'Blob',
