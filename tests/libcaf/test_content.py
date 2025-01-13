@@ -5,7 +5,7 @@ from libcaf import hash_file, delete_content, open_content_for_reading_fd, save_
 from pytest import mark
 
 
-@mark.parametrize("temp_content_length", [1]) # 0, 1, 10, 100, 1000, 10000, 100000, 1000000
+@mark.parametrize("temp_content_length", [0, 1, 10, 100, 1000, 10000, 100000, 1000000])
 class TestContent:
     def test_hash_file(self, temp_content):
         file, content = temp_content

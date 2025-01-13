@@ -5,7 +5,8 @@ from libcaf import Blob, Commit, Tree, TreeRecord, TreeRecordType, hash_object, 
 
 class TestHashing:
     def test_hash_file_non_existent_file(self):
-        with raises(FileNotFoundError):
+
+        with raises(ValueError):
             hash_file("test_hash_file_non_existent_file.txt")
 
     def test_commit_hash(self):
