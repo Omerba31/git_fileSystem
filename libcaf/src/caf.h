@@ -10,10 +10,9 @@
 std::string hash_file(const std::string& file_path);
 std::string hash_string(const std::string& content);
 void save_file_content(const std::string& content_root_dir, const std::string& file_path);
-int open_content_for_saving_fd(const std::string& content_root_dir, const std::string& content_hash);
+int open_fd_for_saving_content(const std::string& content_root_dir, const std::string& content_hash);
 void delete_content(const std::string& content_root_dir, const std::string& content_hash);
-int open_content_for_reading_fd(const std::string& content_root_dir, const std::string& content_hash);
-
+int open_fd_for_reading_content(const std::string& content_root_dir, const std::string& content_hash);
 int lock_file_with_timeout(int fd, int operation, int timeout_sec);
 int create_sub_dir(const std::string& content_root_dir, const std::string& hash);
 int create_content_path(const std::string& content_root_dir, const std::string& hash, char* output_path, size_t output_size);

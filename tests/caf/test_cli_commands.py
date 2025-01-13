@@ -1,5 +1,5 @@
 from caf import cli_commands
-from libcaf import compute_hash,open_content,save_content
+from libcaf import hash_file,open_fd_for_reading_content,save_file_content
 from libcaf.constants import DEFAULT_REPO_DIR, OBJECTS_SUBDIR
 import pytest
 
@@ -35,10 +35,10 @@ class TestCLICommands:
 
         temp_file, expected_content = temp_content
 
-        result = cli_commands.hash_file(path=temp_file, write=False)
+        result = cli_commands.cli_hash_file(path=temp_file, write=False)
         assert result == 0
         
-        expected_hash = compute_hash(temp_file)
+        expected_hash = hash_file(temp_file)
         output = capsys.readouterr()
         assert f"Hash: {expected_hash}" in output.out
 
@@ -47,11 +47,11 @@ class TestCLICommands:
 
         temp_file, expected_content = temp_content
 
-        result = cli_commands.hash_file(path=temp_file,
+        result = cli_commands.cli_hash_file(path=temp_file,
                                         working_dir_path=temp_repo, repo_dir=DEFAULT_REPO_DIR,
                                         write=True)
         assert result == 0
-        expected_hash = compute_hash(temp_file)
+        expected_hash = hash_file(temp_file)
 
         output = capsys.readouterr()
         assert f"Hash: {expected_hash}" in output.out
@@ -59,7 +59,7 @@ class TestCLICommands:
 
         # Verify the contents of the file corresponding to the hash
         
-        with open_content(temp_repo / DEFAULT_REPO_DIR / OBJECTS_SUBDIR, expected_hash) as f:
+        with open_fd_for_reading_content(temp_repo / DEFAULT_REPO_DIR / OBJECTS_SUBDIR, expected_hash) as f:
             saved_content = f.read()
 
         assert saved_content == expected_content
@@ -69,7 +69,7 @@ class TestCLICommands:
 
         non_existent_file = temp_repo / "non_existent_file.txt"
 
-        result = cli_commands.hash_file(path=non_existent_file, write=True)
+        result = cli_commands.cli_hash_file(path=non_existent_file, write=True)
         assert result == -1
 
         output = capsys.readouterr()
@@ -81,11 +81,11 @@ class TestCLICommands:
         temp_file = temp_repo / "test_file.txt"
         temp_file.write_text("This is a test file.")
 
-        cli_commands.hash_file(path=temp_file,
+        cli_commands.cli_hash_file(path=temp_file,
                                working_dir_path=temp_repo, repo_dir=DEFAULT_REPO_DIR,
                                write=True)
 
-        result = cli_commands.hash_file(path=temp_file,
+        result = cli_commands.cli_hash_file(path=temp_file,
                                         working_dir_path=temp_repo, repo_dir=DEFAULT_REPO_DIR,
                                         write=True)
         assert result == 0
@@ -97,7 +97,7 @@ class TestCLICommands:
         temp_file = temp_repo / "test_file.txt"
         temp_file.write_text("This is a test file.")
 
-        result = cli_commands.hash_file(path=temp_file,
+        result = cli_commands.cli_hash_file(path=temp_file,
                                         working_dir_path=temp_repo, repo_dir=DEFAULT_REPO_DIR,
                                         write=True)
         assert result == -1

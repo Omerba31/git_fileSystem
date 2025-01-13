@@ -38,9 +38,9 @@ PYBIND11_MODULE(_libcaf, m) {
     m.def("hash_file", make_exception_handler(hash_file));
     m.def("hash_string", make_exception_handler(hash_string));
     m.def("save_file_content", make_exception_handler(save_file_content));
-    m.def("open_content_for_saving_fd", make_exception_handler(open_content_for_saving_fd));
+    m.def("open_fd_for_saving_content", make_exception_handler(open_fd_for_saving_content));
     m.def("delete_content", make_exception_handler(delete_content));
-    m.def("open_content_for_reading_fd", make_exception_handler(open_content_for_reading_fd));
+    m.def("open_fd_for_reading_content", make_exception_handler(open_fd_for_reading_content));
 
     // hashTypes
     m.def("hash_object", py::overload_cast<const Blob&>(&hash_object), py::arg("blob"));

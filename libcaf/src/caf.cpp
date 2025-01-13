@@ -139,7 +139,7 @@ void save_file_content(const std::string& content_root_dir, const std::string& f
     close(fd);
 }
 
-int open_content_for_saving_fd(const std::string& content_root_dir, const std::string& content_hash){
+int open_fd_for_saving_content(const std::string& content_root_dir, const std::string& content_hash){
     if (mkdir(content_root_dir.c_str(), 0755) != 0 && errno != EEXIST) {
         return -1;
     }
@@ -198,7 +198,7 @@ void delete_content(const std::string& content_root_dir, const std::string& cont
         throw std::runtime_error("Failed to delete directory");
 }
 
-int open_content_for_reading_fd(const std::string& content_root_dir, const std::string& content_hash){
+int open_fd_for_reading_content(const std::string& content_root_dir, const std::string& content_hash){
     char content_path[PATH_MAX];
     if (create_content_path(content_root_dir.c_str(), content_hash.c_str(), content_path, sizeof(content_path)) != 0)
         return -1;

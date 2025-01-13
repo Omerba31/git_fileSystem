@@ -20,18 +20,27 @@ def hash_file(filename: str | Path) -> str:
 
     return _libcaf.hash_file(filename)
 
-
-def open_content_for_reading_fd(root_dir, hash_value) -> IO:
+def open_fd_for_reading_content(root_dir, hash_value:str) -> IO:
     if isinstance(root_dir, Path):
         root_dir = str(root_dir)
 
-    fd = _libcaf.open_content_for_reading_fd(root_dir, hash_value)
+    fd = _libcaf.open_fd_for_reading_content(root_dir, hash_value)
 
     if fd == -1:
         raise OSError(f"Failed to open content with hash '{hash_value}' in directory '{root_dir}'")
 
     return os.fdopen(fd, 'r')
 
+def open_fd_for_saving_content(root_dir, hash_value: str) -> IO:
+    if isinstance(root_dir, Path):
+        root_dir = str(root_dir)
+
+    fd = _libcaf.open_fd_for_saving_content(root_dir, hash_value)
+
+    if fd == -1:
+        raise OSError(f"Failed to open content with hash '{hash_value}' in directory '{root_dir}'")
+
+    return os.fdopen(fd, 'w')
 
 def delete_content(root_dir: str | Path, hash_value: str) -> None:
     if isinstance(root_dir, Path):
@@ -122,7 +131,7 @@ __all__ = [
     'load_commit',
     'save_tree',
     'load_tree',
-    'open_content_for_reading_fd',
+    'open_fd_for_reading_content',
     'delete_content',
     'Commit',
     'hash_object',

@@ -1,7 +1,7 @@
 import hashlib
 import threading
 import time
-from libcaf import hash_file, delete_content, open_content_for_reading_fd, save_file_content
+from libcaf import hash_file, delete_content, open_fd_for_reading_content, save_file_content, open_fd_for_saving_content
 from pytest import mark
 
 
@@ -27,14 +27,28 @@ class TestContent:
         saved_content = saved_file.read_text()
         assert saved_content == expected_content
 
-    def test_open_content_for_reading_fd(self, temp_repo, temp_content):
+    def test_open_fd_for_reading_content(self, temp_repo, temp_content):
         file, expected_content = temp_content
 
         file_hash = hash_file(file)
         save_file_content(temp_repo, file)
 
-        with open_content_for_reading_fd(temp_repo, file_hash) as f:
+        with open_fd_for_reading_content(temp_repo, file_hash) as f:
             saved_content = f.read()
+
+        assert saved_content == expected_content
+
+    def test_open_fd_for_saving_content(self, temp_repo, temp_content):
+        file, expected_content = temp_content
+
+        file_hash = hash_file(file)
+        save_file_content(temp_repo, file)
+
+        with open_fd_for_saving_content(temp_repo, file_hash) as f:
+            f.write(expected_content)
+
+        saved_file = temp_repo / f"{file_hash[:2]}/{file_hash}"
+        saved_content = saved_file.read_text()
 
         assert saved_content == expected_content
 
@@ -58,7 +72,7 @@ class TestContent:
 
         def read():
             file_hash = hash_file(file)
-            with open_content_for_reading_fd(temp_repo, file_hash) as f:
+            with open_fd_for_reading_content(temp_repo, file_hash) as f:
                 assert f.read() == expected_content
 
         save_thread = threading.Thread(target=save)
