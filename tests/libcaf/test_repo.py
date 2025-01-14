@@ -10,7 +10,7 @@ class TestRepo:
     def test_open_non_existent_file(self, temp_repo):
         non_existent_hash = "deadbeef" + "0" * 32
 
-        with raises(OSError):
+        with raises(ValueError):
             open_fd_for_reading_content(temp_repo, non_existent_hash)
 
     def test_delete_non_existent_file(self, temp_repo):
