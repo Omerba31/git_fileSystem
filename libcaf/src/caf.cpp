@@ -16,24 +16,30 @@
 #define BUFFER_SIZE 4096
 #define DIR_NAME_SIZE 2
 
-int compute_hash(const char *filename, char *output){
+std::string create_sub_dir(const std::string& content_root_dir, const std::string& hash);
+void lock_file_with_timeout(int fd, int operation, int timeout_sec);
+void copy_file(const std::string& src, const std::string& dest);
+void create_content_path(const std::string& content_root_dir, const std::string& hash, std::string& output_path, size_t output_size);
+
+std::string hash_file(const std::string& filename){
     unsigned char hash[EVP_MAX_MD_SIZE];
     unsigned int hash_len;
     unsigned char buffer[BUFFER_SIZE];
 
     EVP_MD_CTX *mdctx = EVP_MD_CTX_new();
     if (!mdctx){
-        return -1;
-    }
-    if (EVP_DigestInit_ex(mdctx, EVP_sha1(), nullptr) != 1){
-        EVP_MD_CTX_free(mdctx);
-        return -1;
+        throw std::runtime_error("Failed to create EVP_MD_CTX");
     }
 
-    FILE *file = fopen(filename, "rb");
+    if (EVP_DigestInit_ex(mdctx, EVP_sha1(), nullptr) != 1){
+        EVP_MD_CTX_free(mdctx);
+        throw std::runtime_error("Failed to initialize digest");
+    }
+
+    FILE *file = fopen(filename.c_str(), "rb");
     if (!file){
         EVP_MD_CTX_free(mdctx);
-        return -1;
+        throw std::runtime_error("Failed to open file");
     }
 
     size_t bytes_read;
@@ -41,194 +47,179 @@ int compute_hash(const char *filename, char *output){
         if (EVP_DigestUpdate(mdctx, buffer, bytes_read) != 1){
             fclose(file);
             EVP_MD_CTX_free(mdctx);
-            return -1;
+            throw std::runtime_error("Failed to update digest");
         }
     }
+
     fclose(file);
 
     if (EVP_DigestFinal_ex(mdctx, hash, &hash_len) != 1){
         EVP_MD_CTX_free(mdctx);
-        return -1;
+        throw std::runtime_error("Failed to finalize digest");
     }
 
-    for (unsigned int i = 0; i < hash_len; i++){
-        sprintf(output + (i * 2), "%02x", hash[i]);
-    }
-    output[hash_len * 2] = '\0';
     EVP_MD_CTX_free(mdctx);
-    return 0;
+
+    std::string output;
+    output.reserve(hash_len * 2);
+    for (unsigned int i = 0; i < hash_len; ++i) {
+        char hex[3];
+        sprintf(hex, "%02x", hash[i]);
+        output.append(hex);
+    }
+
+    return output;
 }
 
-int compute_hash(const std::string& input, std::string& output) {
+std::string hash_string(const std::string& content){
     unsigned char hash[HASH_SIZE + 1] = {0};
     EVP_MD_CTX* mdctx = EVP_MD_CTX_new();
+
     if (mdctx == nullptr) {
-        return -1;
+        throw std::runtime_error("Failed to create EVP_MD_CTX");
     }
 
     if (EVP_DigestInit_ex(mdctx, EVP_sha1(), nullptr) != 1) {
         EVP_MD_CTX_free(mdctx);
-        return -1;
+        throw std::runtime_error("Failed to initialize digest");
     }
 
-    if (EVP_DigestUpdate(mdctx, input.c_str(), input.size()) != 1) {
+    if (EVP_DigestUpdate(mdctx, content.c_str(), content.size()) != 1) {
         EVP_MD_CTX_free(mdctx);
-        return -1;
+        throw std::runtime_error("Failed to update digest");
     }
 
     unsigned int hash_len;
     if (EVP_DigestFinal_ex(mdctx, hash, &hash_len) != 1) {
         EVP_MD_CTX_free(mdctx);
-        return -1;
+        throw std::runtime_error("Failed to finalize digest");
     }
 
-    char buf[HASH_SIZE + 1 + 1];
-    buf[HASH_SIZE + 1] = 0;
-    for (unsigned int i = 0; i < hash_len; i++) {
-        snprintf(buf + i * 2, 3, "%02x", hash[i]);
-    }
-    output = std::string(buf);
     EVP_MD_CTX_free(mdctx);
 
-    return 0;
+    std::string output;
+    output.reserve(hash_len * 2);
+    for (unsigned int i = 0; i < hash_len; ++i) {
+        char hex[3];
+        snprintf(hex, sizeof(hex), "%02x", hash[i]);
+        output.append(hex);
+    }
+
+    return output;
 }
 
-int save_content(const char *root_dir, const char *filename){
-    if (mkdir(root_dir, 0755) != 0 && errno != EEXIST)
-        return -1;
+void save_file_content(const std::string& content_root_dir, const std::string& file_path){
+    if (mkdir(content_root_dir.c_str(), 0755) != 0 && errno != EEXIST)
+        throw std::runtime_error("Failed to create root directory");
 
-    char hash[HASH_SIZE + 1];
-    if (compute_hash(filename, hash) != 0)
-        return -1;
+    std::string file_hash = hash_file(file_path);
 
-    char content_path[PATH_MAX];
-    if (create_content_path(root_dir, hash, content_path, sizeof(content_path)) != 0)
-        return -1;
+    std::string content_path;
+    create_content_path(content_root_dir, file_hash, content_path, sizeof(content_path));
 
-    int fd = open(content_path, O_WRONLY | O_CREAT, 0644);
+    int fd = open(content_path.c_str(), O_WRONLY | O_CREAT, 0644);
+
     if (fd < 0)
-    {
-        return -1;
-    }
+        throw std::runtime_error("Failed to open file");
 
-    if (lock_file_with_timeout(fd, LOCK_EX, 10) != 0)
-    {
+    try{
+        lock_file_with_timeout(fd, LOCK_EX, 10);
+    } catch (const std::exception& e){
         close(fd);
-        return -1;
+        throw;
     }
 
-    if (copy_file(filename, content_path) != 0)
-    {
+    try {
+        copy_file(file_path, content_path);
+    } catch (const std::exception& e) {
+        unlink(content_path.c_str());
         flock(fd, LOCK_UN);
         close(fd);
-        unlink(content_path);
-        return -1;
+        throw;
     }
 
     flock(fd, LOCK_UN);
     close(fd);
-    return 0;
 }
 
-std::tuple<int, int, std::string> save_content(const std::string &root_dir, const std::string &hash, int flags) {
-    // Ensure the root directory exists
-    if (mkdir(root_dir.c_str(), 0755) != 0 && errno != EEXIST) {
-        return {-1, -1, ""};  // Failed to create root directory
+int open_content_for_saving(const std::string& content_root_dir, const std::string& content_hash){
+    if (mkdir(content_root_dir.c_str(), 0755) != 0 && errno != EEXIST) {
+        throw std::runtime_error("Failed to create root directory");
     }
 
-    // Generate the blob path using the hash
-    char content_path[PATH_MAX];
-    if (create_content_path(root_dir.c_str(), hash.c_str(), content_path, sizeof(content_path)) != 0) {
-        return {-1, -1, ""};  // Failed to generate content path
-    }
+    std::string content_path;
+    create_content_path(content_root_dir, content_hash, content_path, sizeof(content_path));
 
-    // Open the file with specified flags
-    int fd = open(content_path, flags, 0644);  // Use specified flags and permissions
+    int fd = open(content_path.c_str(), O_WRONLY|O_CREAT, 0644);
     if (fd < 0) {
-            std::cerr << "Failed to open file: " << content_path
-              << ", errno: " << strerror(errno) << std::endl;
-        return {-1, -1, ""};  // Failed to open file
+        throw std::runtime_error("Failed to open file");
     }
 
-    // Lock the file with a timeout
-    if (lock_file_with_timeout(fd, LOCK_EX, 10) != 0) {  // Exclusive lock with a 10-second timeout
-        close(fd);  // Close the file on failure
-        return {-1, -1, ""};
+    try{
+        lock_file_with_timeout(fd, LOCK_EX, 10);
+    } catch (const std::exception& e){
+        close(fd);
+        throw;
     }
 
-    return {0, fd, std::string(content_path)};  // Success: return result, file descriptor, and blob path
+
+    return fd;
 }
 
-int delete_content(const char *root_dir, const char *hash){
-    char content_path[PATH_MAX];
-    if (create_content_path(root_dir, hash, content_path, sizeof(content_path)) != 0)
-        return -1;
+void delete_content(const std::string& content_root_dir, const std::string& content_hash) {
+    std::string content_path;
+    create_content_path(content_root_dir, content_hash, content_path, sizeof(content_path));
 
-    int fd = open(content_path, O_RDONLY);
+    int fd = open(content_path.c_str(), O_RDONLY);
     if (fd < 0)
     {
         if (errno == ENOENT)
-            return 0;
-        return -1;
+            return;
+        throw std::runtime_error("Failed to open file");
     }
 
-    if (flock(fd, LOCK_SH | LOCK_NB) != 0)
-    {
-        if (errno == EWOULDBLOCK)
-        {
+    try{
+            lock_file_with_timeout(fd, LOCK_EX, 10);
+        } catch (const std::exception& e){
             close(fd);
-            return -1;
+            throw;
         }
-        close(fd);
-        return -1;
-    }
+    if (unlink(content_path.c_str()) != 0)
+        throw std::runtime_error("Failed to delete file");
 
     flock(fd, LOCK_UN);
     close(fd);
-
-    if (unlink(content_path) != 0)
-        return -1;
-
-    char dir_path[PATH_MAX];
-    snprintf(dir_path, sizeof(dir_path), "%s/%c%c", root_dir, hash[0], hash[1]);
-    if (rmdir(dir_path) != 0 && errno != ENOTEMPTY)
-        return -1;
-
-    return 0;
 }
 
-int open_content(const char *root_dir, const char *hash){
-    char content_path[PATH_MAX];
-    if (create_content_path(root_dir, hash, content_path, sizeof(content_path)) != 0)
-        return -1;
+int open_content_for_reading(const std::string& content_root_dir, const std::string& content_hash){
+    std::string content_path;
+    create_content_path(content_root_dir, content_hash, content_path, sizeof(content_path));
 
-    int fd = open(content_path, O_RDONLY);
+    int fd = open(content_path.c_str(), O_RDONLY);
+
     if (fd < 0)
-    {
-        if (errno == ENOENT)
-            return -1;
-        return -1;
-    }
+        throw std::runtime_error("Failed to open file");
 
-    if (lock_file_with_timeout(fd, LOCK_SH, 10) != 0) // 10-second timeout
-    {
+    try{
+        lock_file_with_timeout(fd, LOCK_EX, 10);
+    } catch (const std::exception& e){
         close(fd);
-        return -1;
+        throw;
     }
 
     return fd;
 }
 
-int copy_file(const char *src, const char *dest){
-    FILE *source_file = fopen(src, "rb");
+void copy_file(const std::string& src, const std::string& dest) {
+    FILE* source_file = fopen(src.c_str(), "rb");
     if (!source_file)
-        return -1;
+        throw std::runtime_error("Failed to open source file");
 
-    FILE *dest_file = fopen(dest, "wb");
+    FILE *dest_file = fopen(dest.c_str(), "wb");
     if (!dest_file)
     {
         fclose(source_file);
-        return -1;
+        throw std::runtime_error("Failed to open destination file");
     }
 
     unsigned char buffer[BUFFER_SIZE];
@@ -240,49 +231,40 @@ int copy_file(const char *src, const char *dest){
         {
             fclose(source_file);
             fclose(dest_file);
-            return -1;
+            throw std::runtime_error("Failed to write to destination file");
         }
 
         if (ferror(dest_file))
         {
             fclose(source_file);
             fclose(dest_file);
-            return -1;
+            throw std::runtime_error("Error while writing to destination file");
         }
     }
     fclose(source_file);
     fclose(dest_file);
-    return 0;
 }
 
-int create_content_path(const char *root_dir, const char *hash, char *output_path, size_t output_size){
-    if (!root_dir || !hash || !output_path)
-        return -1;
+void create_content_path(const std::string& content_root_dir, const std::string& hash, std::string& output_path, size_t output_size) {
+    if (content_root_dir.empty() || hash.empty())
+        throw std::invalid_argument("Invalid argument");
 
-    if (create_sub_dir(root_dir, hash) != 0)
-        return -1;
-
-    int i = snprintf(output_path, output_size, "%s/%c%c/%s", root_dir, hash[0], hash[1], hash);
-    if (i < 0 || (size_t)i >= output_size)
-        return -1;
-
-    return 0;
+    output_path = create_sub_dir(content_root_dir, hash) + "/" + hash;
 }
 
-int create_sub_dir(const char *root_dir, const char *hash){
-    char sub_dir[3] = {hash[0], hash[1], '\0'};
-    char sub_dir_path[PATH_MAX];
-    int i = snprintf(sub_dir_path, sizeof(sub_dir_path), "%s/%s", root_dir, sub_dir);
-    if (i < 0 || (size_t)i >= sizeof(sub_dir_path))
-        return -1;
+std::string create_sub_dir(const std::string& content_root_dir, const std::string& hash) {
+    if (content_root_dir.empty() || hash.length() < 2)
+        throw std::invalid_argument("Invalid argument");
 
-    if (mkdir(sub_dir_path, 0755) != 0 && errno != EEXIST)
-        return -1;
+    std::string sub_dir_path = content_root_dir + "/" + hash.substr(0, 2);
 
-    return 0;
+    if (mkdir(sub_dir_path.c_str(), 0755) != 0 && errno != EEXIST)
+        throw std::runtime_error("Failed to create sub directory");
+
+    return sub_dir_path;
 }
 
-int lock_file_with_timeout(int fd, int operation, int timeout_sec){
+void lock_file_with_timeout(int fd, int operation, int timeout_sec){
     time_t start_time = time(nullptr);
 
     while (flock(fd, operation | LOCK_NB) != 0)
@@ -290,18 +272,10 @@ int lock_file_with_timeout(int fd, int operation, int timeout_sec){
         if (errno == EWOULDBLOCK)
         {
             if (time(nullptr) - start_time >= timeout_sec)
-            {
-                printf("Lock attempt timed out after %d seconds.\n", timeout_sec);
-                return -1; // Timeout reached
-            }
-            sleep(1); // Wait before retrying
+                throw std::runtime_error("Failed to acquire lock");
+            sleep(1);
         }
         else
-        {
-            perror("Error while acquiring lock");
-            return -1;
-        }
+            throw std::runtime_error("Failed to acquire lock");
     }
-
-    return 0;
 }

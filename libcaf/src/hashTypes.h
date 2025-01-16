@@ -8,8 +8,8 @@
 #include "commit.h"
 
 // Function declarations for computing hashes
-std::string computeHash(const Blob& blob);
-std::string computeHash(const Tree& tree);
-std::string computeHash(const Commit& commit);
+std::string hash_object(const Blob& blob);
+std::string hash_object(const Tree& tree);
+std::string hash_object(const Commit& commit);
 
 #endif // HASHTYPES_H

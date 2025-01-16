@@ -1,9 +1,9 @@
-from libcaf import Commit, computeHash, load_commit, save_commit, load_tree, save_tree, Tree, TreeRecord, TreeRecordType
+from libcaf import Commit, hash_object, load_commit, save_commit, load_tree, save_tree, Tree, TreeRecord, TreeRecordType
 
 
 def test_save_load_commit(temp_repo):
     commit = Commit("treehash123", "Author", "Commit message", 1234567890, "commithash123parent")
-    commit_hash = computeHash(commit)
+    commit_hash = hash_object(commit)
 
     save_commit(temp_repo, commit)
     loaded_commit = load_commit(temp_repo, commit_hash)
@@ -16,7 +16,7 @@ def test_save_load_commit(temp_repo):
     
 def test_save_load_commit_with_none_parent(temp_repo):
     commit_none_parent = Commit("commithash456", "Author", "Commit message", 1234567890, None)
-    commit_none_parent_hash = computeHash(commit_none_parent)
+    commit_none_parent_hash = hash_object(commit_none_parent)
 
     save_commit(temp_repo, commit_none_parent)
     loaded_commit_none_parent = load_commit(temp_repo, commit_none_parent_hash)
@@ -34,7 +34,7 @@ def test_save_load_tree(temp_repo):
         "meshi": TreeRecord(TreeRecordType.BLOB, "meshi123", "meshi"),
     }
     tree = Tree(records)
-    tree_hash = computeHash(tree)
+    tree_hash = hash_object(tree)
 
     save_tree(temp_repo, tree)
     loaded_tree = load_tree(temp_repo, tree_hash)

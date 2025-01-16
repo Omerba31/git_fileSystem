@@ -3,15 +3,15 @@ import time
 
 from pytest import mark, raises
 
-from libcaf import compute_hash, delete_content, open_content, save_content
+from libcaf import hash_file, delete_content, open_content_for_reading, save_file_content
 
 
 class TestRepo:
     def test_open_non_existent_file(self, temp_repo):
         non_existent_hash = "deadbeef" + "0" * 32
 
-        with raises(OSError):
-            open_content(temp_repo, non_existent_hash)
+        with raises(ValueError):
+            open_content_for_reading(temp_repo, non_existent_hash)
 
     def test_delete_non_existent_file(self, temp_repo):
         non_existent_hash = "deadbeef" + "0" * 32
@@ -23,7 +23,7 @@ class TestRepo:
         temp_content_file2, _ = temp_content_file_factory()
 
         def save(filepath):
-            save_content(temp_repo, filepath)
+            save_file_content(temp_repo, filepath)
 
         thread1 = threading.Thread(target=save, args=(temp_content_file1,))
         thread2 = threading.Thread(target=save, args=(temp_content_file2,))
@@ -35,8 +35,8 @@ class TestRepo:
         thread1.join()
         thread2.join()
 
-        hash1 = compute_hash(temp_content_file1)
-        hash2 = compute_hash(temp_content_file2)
+        hash1 = hash_file(temp_content_file1)
+        hash2 = hash_file(temp_content_file2)
         saved_file_path1 = temp_repo / f"{hash1[:2]}/{hash1}"
         saved_file_path2 = temp_repo / f"{hash2[:2]}/{hash2}"
 

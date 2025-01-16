@@ -3,12 +3,10 @@ from pathlib import Path
 
 from libcaf.repository import Repository, RepositoryError
 
-from libcaf import compute_hash
-
+from libcaf import hash_file
 
 def print_error(message):
     print(message, file=sys.stderr)
-
 
 def _repo_from_cli_kwargs(kwargs) -> Repository:
     working_dir_path = kwargs['working_dir_path']
@@ -22,7 +20,6 @@ def _repo_from_cli_kwargs(kwargs) -> Repository:
 
     return Repository(working_dir_path, repo_dir)
 
-
 def init(**kwargs) -> int:
     repo = _repo_from_cli_kwargs(kwargs)
 
@@ -34,27 +31,27 @@ def init(**kwargs) -> int:
         print_error(f"CAF repository already exists in {repo.working_dir}")
         return -1
 
-def hash_file(**kwargs) -> int:
+def cli_hash_file(**kwargs) -> int:
     path = Path(kwargs['path'])
 
     if not path.exists():
         print_error(f"File {path} does not exist.")
         return -1
 
-    file_hash = compute_hash(path)
+    file_hash = hash_file(path)
     print(f"Hash: {file_hash}")
 
     if kwargs.get('write', False):
         repo = _repo_from_cli_kwargs(kwargs)
 
         try:
-            repo.save_file(path)
+            repo.save_file_content(path)
             print(f"Saved file {path} to CAF repository")
         except RepositoryError:
             print_error(f"Failed to save file {path} to CAF repository, is the repository initialized?")
             return -1
-        except:
-            print_error(f"Failed to save file {path} to CAF repository")
+        except Exception as e:
+            print_error(f"Unexpected error saving file {path} to CAF repository: {e}")
             return -1
 
     return 0

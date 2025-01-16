@@ -3,9 +3,6 @@ from pathlib import Path
 import libcaf
 from libcaf.constants import OBJECTS_SUBDIR
 
-
-
-
 class RepositoryError(Exception):
     pass
 
@@ -41,5 +38,5 @@ class Repository:
         self.objects_dir().mkdir()
 
     @requires_repo
-    def save_file(self, file: Path) -> None:
-        libcaf.save_content(self.objects_dir(), file)
+    def save_file_content(self, file: Path) -> None:
+        libcaf.save_file_content(self.objects_dir(), file)

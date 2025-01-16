@@ -1,7 +1,8 @@
 import hashlib
+import os
 import threading
 import time
-from libcaf import compute_hash, delete_content, open_content, save_content
+from libcaf import hash_file, delete_content, open_content_for_reading, save_file_content, open_content_for_saving
 from pytest import mark
 
 
@@ -10,16 +11,16 @@ class TestContent:
     def test_hash_file(self, temp_content):
         file, content = temp_content
 
-        actual = compute_hash(file)
+        actual = hash_file(file)
         expected = hashlib.sha1(content.encode('utf-8')).hexdigest()
 
         assert actual == expected
 
-    def test_save_content(self, temp_repo, temp_content):
+    def test_save_file_content(self, temp_repo, temp_content):
         file, expected_content = temp_content
 
-        save_content(temp_repo, file)
-        file_hash = compute_hash(file)
+        save_file_content(temp_repo, file)
+        file_hash = hash_file(file)
 
         saved_file = temp_repo / f"{file_hash[:2]}/{file_hash}"
         assert saved_file.exists()
@@ -27,22 +28,36 @@ class TestContent:
         saved_content = saved_file.read_text()
         assert saved_content == expected_content
 
-    def test_open_content(self, temp_repo, temp_content):
+    def test_open_content_for_reading(self, temp_repo, temp_content):
         file, expected_content = temp_content
 
-        file_hash = compute_hash(file)
-        save_content(temp_repo, file)
+        file_hash = hash_file(file)
+        save_file_content(temp_repo, file)
 
-        with open_content(temp_repo, file_hash) as f:
+        with open_content_for_reading(temp_repo, file_hash) as f:
             saved_content = f.read()
+
+        assert saved_content == expected_content
+
+    def test_open_content_for_saving(self, temp_repo, temp_content):
+        file, expected_content = temp_content
+
+        file_hash = hash_file(file)
+        save_file_content(temp_repo, file)
+
+        with open_content_for_saving(temp_repo, file_hash) as f:
+            f.write(expected_content)
+
+        saved_file = temp_repo / f"{file_hash[:2]}/{file_hash}"
+        saved_content = saved_file.read_text()
 
         assert saved_content == expected_content
 
     def test_save_and_delete_content(self, temp_repo, temp_content):
         file, _ = temp_content
 
-        save_content(temp_repo, file)
-        file_hash = compute_hash(file)
+        save_file_content(temp_repo, file)
+        file_hash = hash_file(file)
 
         saved_file_path = temp_repo / f"{file_hash[:2]}/{file_hash}"
         assert saved_file_path.exists()
@@ -54,11 +69,11 @@ class TestContent:
         file, expected_content = temp_content
 
         def save():
-            save_content(temp_repo, file)
+            save_file_content(temp_repo, file)
 
         def read():
-            file_hash = compute_hash(file)
-            with open_content(temp_repo, file_hash) as f:
+            file_hash = hash_file(file)
+            with open_content_for_reading(temp_repo, file_hash) as f:
                 assert f.read() == expected_content
 
         save_thread = threading.Thread(target=save)
@@ -75,7 +90,7 @@ class TestContent:
         file, _ = temp_content
 
         def save():
-            save_content(temp_repo, file)
+            save_file_content(temp_repo, file)
 
         threads = [threading.Thread(target=save) for _ in range(5)]
 
@@ -85,16 +100,16 @@ class TestContent:
         for thread in threads:
             thread.join()
 
-        file_hash = compute_hash(file)
+        file_hash = hash_file(file)
         saved_file_path = temp_repo / f"{file_hash[:2]}/{file_hash}"
         assert saved_file_path.exists()
 
     def test_concurrent_delete(self, temp_repo, temp_content):
         file, _ = temp_content
-        file_hash = compute_hash(file)
+        file_hash = hash_file(file)
 
         def save():
-            save_content(temp_repo, file)
+            save_file_content(temp_repo, file)
 
         def delete():
             time.sleep(0.2)

@@ -55,13 +55,13 @@ bool write_with_length(int fd, const std::string &data) {
 
 // Serialize Commit to disk
 int save_commit(const std::string &root_dir, const Commit &commit) {
-    std::string commit_hash = computeHash(commit);
+    std::string commit_hash = hash_object(commit);
 
-    auto [status, fd, blob_path] = save_content(root_dir, commit_hash, O_WRONLY | O_CREAT);
-    if (status != 0) {
+    int fd = open_content_for_saving(root_dir, commit_hash);
+    if (fd < 0) {
         return -1;
     }
-    
+
     if (!write_with_length(fd, commit.treeHash)) {
         return cleanup(fd, root_dir, commit_hash, true);
     }
@@ -91,9 +91,9 @@ int save_commit(const std::string &root_dir, const Commit &commit) {
 
 // Deserialize Commit from disk
 std::pair<int, Commit> load_commit(const std::string &root_dir, const std::string &hash) {
-    int fd = open_content(root_dir.c_str(), hash.c_str());
+    int fd = open_content_for_reading(root_dir.c_str(), hash.c_str());
     if (fd < 0) {
-        return {-1, Commit()}; 
+        return {-1, Commit()};
     }
 
     std::string treehash;
@@ -158,10 +158,10 @@ std::pair<int, TreeRecord> read_tree_record(int fd) {
 
 // Serialize Tree to disk
 int save_tree(const std::string &root_dir, const Tree &tree) {
-    std::string tree_hash = computeHash(tree);
+    std::string tree_hash = hash_object(tree);
 
-    auto [status, fd, blob_path] = save_content(root_dir, tree_hash, O_WRONLY | O_CREAT);
-    if (status != 0) {
+    int fd = open_content_for_saving(root_dir, tree_hash);
+    if (fd < 0) {
         return -1;
     }
 
@@ -179,7 +179,7 @@ int save_tree(const std::string &root_dir, const Tree &tree) {
 
 // Deserialize Tree from disk
 std::pair<int, Tree> load_tree(const std::string &root_dir, const std::string &hash) {
-    int fd = open_content(root_dir.c_str(), hash.c_str());
+    int fd = open_content_for_reading(root_dir.c_str(), hash.c_str());
     if (fd < 0) {
         return {-1, Tree({})};
     }
