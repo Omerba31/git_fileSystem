@@ -3,7 +3,7 @@ import time
 
 from pytest import mark, raises
 
-from libcaf import hash_file, delete_content, open_fd_for_reading_content, save_file_content
+from libcaf import hash_file, delete_content, open_content_for_reading, save_file_content
 
 
 class TestRepo:
@@ -11,7 +11,7 @@ class TestRepo:
         non_existent_hash = "deadbeef" + "0" * 32
 
         with raises(ValueError):
-            open_fd_for_reading_content(temp_repo, non_existent_hash)
+            open_content_for_reading(temp_repo, non_existent_hash)
 
     def test_delete_non_existent_file(self, temp_repo):
         non_existent_hash = "deadbeef" + "0" * 32

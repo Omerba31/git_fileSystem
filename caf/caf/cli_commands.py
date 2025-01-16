@@ -5,10 +5,8 @@ from libcaf.repository import Repository, RepositoryError
 
 from libcaf import hash_file
 
-
 def print_error(message):
     print(message, file=sys.stderr)
-
 
 def _repo_from_cli_kwargs(kwargs) -> Repository:
     working_dir_path = kwargs['working_dir_path']
@@ -21,7 +19,6 @@ def _repo_from_cli_kwargs(kwargs) -> Repository:
         working_dir_path = Path(working_dir_path)
 
     return Repository(working_dir_path, repo_dir)
-
 
 def init(**kwargs) -> int:
     repo = _repo_from_cli_kwargs(kwargs)

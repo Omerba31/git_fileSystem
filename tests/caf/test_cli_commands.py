@@ -1,5 +1,5 @@
 from caf import cli_commands
-from libcaf import hash_file,open_fd_for_reading_content,save_file_content
+from libcaf import hash_file,open_content_for_reading,save_file_content
 from libcaf.constants import DEFAULT_REPO_DIR, OBJECTS_SUBDIR
 import pytest
 
@@ -59,7 +59,7 @@ class TestCLICommands:
 
         # Verify the contents of the file corresponding to the hash
         
-        with open_fd_for_reading_content(temp_repo / DEFAULT_REPO_DIR / OBJECTS_SUBDIR, expected_hash) as f:
+        with open_content_for_reading(temp_repo / DEFAULT_REPO_DIR / OBJECTS_SUBDIR, expected_hash) as f:
             saved_content = f.read()
 
         assert saved_content == expected_content

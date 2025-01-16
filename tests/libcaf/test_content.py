@@ -1,7 +1,8 @@
 import hashlib
+import os
 import threading
 import time
-from libcaf import hash_file, delete_content, open_fd_for_reading_content, save_file_content, open_fd_for_saving_content, close_content_fd
+from libcaf import hash_file, delete_content, open_content_for_reading, save_file_content, open_content_for_saving
 from pytest import mark
 
 
@@ -27,24 +28,24 @@ class TestContent:
         saved_content = saved_file.read_text()
         assert saved_content == expected_content
 
-    def test_open_fd_for_reading_content(self, temp_repo, temp_content):
+    def test_open_content_for_reading(self, temp_repo, temp_content):
         file, expected_content = temp_content
 
         file_hash = hash_file(file)
         save_file_content(temp_repo, file)
 
-        with open_fd_for_reading_content(temp_repo, file_hash) as f:
+        with open_content_for_reading(temp_repo, file_hash) as f:
             saved_content = f.read()
 
         assert saved_content == expected_content
 
-    def test_open_fd_for_saving_content(self, temp_repo, temp_content):
+    def test_open_content_for_saving(self, temp_repo, temp_content):
         file, expected_content = temp_content
 
         file_hash = hash_file(file)
         save_file_content(temp_repo, file)
 
-        with open_fd_for_saving_content(temp_repo, file_hash) as f:
+        with open_content_for_saving(temp_repo, file_hash) as f:
             f.write(expected_content)
 
         saved_file = temp_repo / f"{file_hash[:2]}/{file_hash}"
@@ -72,7 +73,7 @@ class TestContent:
 
         def read():
             file_hash = hash_file(file)
-            with open_fd_for_reading_content(temp_repo, file_hash) as f:
+            with open_content_for_reading(temp_repo, file_hash) as f:
                 assert f.read() == expected_content
 
         save_thread = threading.Thread(target=save)
@@ -125,28 +126,3 @@ class TestContent:
 
         saved_file_path = temp_repo / f"{file_hash[:2]}/{file_hash}"
         assert not saved_file_path.exists()
-
-    def test_close_content_fd(self, temp_repo, temp_content):
-        file, expected_content = temp_content
-
-        file_hash = hash_file(file)
-        save_file_content(temp_repo, file)
-
-        fd = open_fd_for_reading_content(temp_repo, file_hash)
-        assert fd is not None
-
-        close_content_fd(fd)
-
-        try:
-            fd.read()
-        except OSError:
-            pass
-        else:
-            assert False, "Expected OSError not raised"
-
-        try:
-            close_content_fd(fd)
-        except ValueError:
-            pass
-        else:
-            assert False, "Expected ValueError not raised"

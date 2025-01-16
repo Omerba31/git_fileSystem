@@ -16,11 +16,10 @@
 #define BUFFER_SIZE 4096
 #define DIR_NAME_SIZE 2
 
-void try_lock_with_retries(int fd, int max_retries, int retry_delay_ms);
-void create_sub_dir(const std::string& content_root_dir, const std::string& hash);
+std::string create_sub_dir(const std::string& content_root_dir, const std::string& hash);
 void lock_file_with_timeout(int fd, int operation, int timeout_sec);
 void copy_file(const std::string& src, const std::string& dest);
-char* create_content_path(const std::string& content_root_dir, const std::string& hash, char* output_path, size_t output_size);
+void create_content_path(const std::string& content_root_dir, const std::string& hash, std::string& output_path, size_t output_size);
 
 std::string hash_file(const std::string& filename){
     unsigned char hash[EVP_MAX_MD_SIZE];
@@ -115,10 +114,10 @@ void save_file_content(const std::string& content_root_dir, const std::string& f
 
     std::string file_hash = hash_file(file_path);
 
-    char content_path[PATH_MAX] = {0};
+    std::string content_path;
     create_content_path(content_root_dir, file_hash, content_path, sizeof(content_path));
 
-    int fd = open(content_path, O_WRONLY | O_CREAT, 0644);
+    int fd = open(content_path.c_str(), O_WRONLY | O_CREAT, 0644);
 
     if (fd < 0)
         throw std::runtime_error("Failed to open file");
@@ -133,7 +132,7 @@ void save_file_content(const std::string& content_root_dir, const std::string& f
     try {
         copy_file(file_path, content_path);
     } catch (const std::exception& e) {
-        unlink(content_path);
+        unlink(content_path.c_str());
         flock(fd, LOCK_UN);
         close(fd);
         throw;
@@ -143,15 +142,15 @@ void save_file_content(const std::string& content_root_dir, const std::string& f
     close(fd);
 }
 
-int open_fd_for_saving_content(const std::string& content_root_dir, const std::string& content_hash){
+int open_content_for_saving(const std::string& content_root_dir, const std::string& content_hash){
     if (mkdir(content_root_dir.c_str(), 0755) != 0 && errno != EEXIST) {
         throw std::runtime_error("Failed to create root directory");
     }
 
-    char content_path[PATH_MAX] = {0};
+    std::string content_path;
     create_content_path(content_root_dir, content_hash, content_path, sizeof(content_path));
 
-    int fd = open(content_path, O_WRONLY|O_CREAT, 0644);
+    int fd = open(content_path.c_str(), O_WRONLY|O_CREAT, 0644);
     if (fd < 0) {
         throw std::runtime_error("Failed to open file");
     }
@@ -168,10 +167,10 @@ int open_fd_for_saving_content(const std::string& content_root_dir, const std::s
 }
 
 void delete_content(const std::string& content_root_dir, const std::string& content_hash) {
-    char content_path[PATH_MAX] = {0};
+    std::string content_path;
     create_content_path(content_root_dir, content_hash, content_path, sizeof(content_path));
 
-    int fd = open(content_path, O_RDONLY);
+    int fd = open(content_path.c_str(), O_RDONLY);
     if (fd < 0)
     {
         if (errno == ENOENT)
@@ -179,25 +178,24 @@ void delete_content(const std::string& content_root_dir, const std::string& cont
         throw std::runtime_error("Failed to open file");
     }
 
-    const int max_retries = 5;
-    const int retry_delay_ms = 2000;
-
-    try_lock_with_retries(fd, max_retries, retry_delay_ms);
-
-    if (unlink(content_path) != 0)
+    try{
+            lock_file_with_timeout(fd, LOCK_EX, 10);
+        } catch (const std::exception& e){
+            close(fd);
+            throw;
+        }
+    if (unlink(content_path.c_str()) != 0)
         throw std::runtime_error("Failed to delete file");
 
     flock(fd, LOCK_UN);
     close(fd);
-
-    create_sub_dir(content_root_dir, content_hash);
 }
 
-int open_fd_for_reading_content(const std::string& content_root_dir, const std::string& content_hash){
-    char content_path[PATH_MAX] = {0};
+int open_content_for_reading(const std::string& content_root_dir, const std::string& content_hash){
+    std::string content_path;
     create_content_path(content_root_dir, content_hash, content_path, sizeof(content_path));
 
-    int fd = open(content_path, O_RDONLY);
+    int fd = open(content_path.c_str(), O_RDONLY);
 
     if (fd < 0)
         throw std::runtime_error("Failed to open file");
@@ -247,16 +245,14 @@ void copy_file(const std::string& src, const std::string& dest) {
     fclose(dest_file);
 }
 
-char* create_content_path(const std::string& content_root_dir, const std::string& hash, char* output_path, size_t output_size) {
-    if (content_root_dir.empty() || hash.empty() || !output_path)
+void create_content_path(const std::string& content_root_dir, const std::string& hash, std::string& output_path, size_t output_size) {
+    if (content_root_dir.empty() || hash.empty())
         throw std::invalid_argument("Invalid argument");
 
-    create_sub_dir(content_root_dir, hash);
-    snprintf(output_path, output_size, "%s/%s/%s", content_root_dir.c_str(), hash.substr(0, 2).c_str(), hash.c_str());
-    return output_path;
+    output_path = create_sub_dir(content_root_dir, hash) + "/" + hash;
 }
 
-void create_sub_dir(const std::string& content_root_dir, const std::string& hash) {
+std::string create_sub_dir(const std::string& content_root_dir, const std::string& hash) {
     if (content_root_dir.empty() || hash.length() < 2)
         throw std::invalid_argument("Invalid argument");
 
@@ -264,6 +260,8 @@ void create_sub_dir(const std::string& content_root_dir, const std::string& hash
 
     if (mkdir(sub_dir_path.c_str(), 0755) != 0 && errno != EEXIST)
         throw std::runtime_error("Failed to create sub directory");
+
+    return sub_dir_path;
 }
 
 void lock_file_with_timeout(int fd, int operation, int timeout_sec){
@@ -280,36 +278,4 @@ void lock_file_with_timeout(int fd, int operation, int timeout_sec){
         else
             throw std::runtime_error("Failed to acquire lock");
     }
-}
-
-void close_content_fd(const int content_fd) {
-    if (content_fd < 0) {
-        throw std::invalid_argument("Invalid file descriptor");
-    }
-
-    if (fsync(content_fd) != 0) {
-        throw std::runtime_error("Failed to flush file descriptor to disk");
-    }
-
-    if (flock(content_fd, LOCK_UN) != 0) {
-        throw std::runtime_error("Failed to unlock file descriptor");
-    }
-
-    if (close(content_fd) != 0) {
-        throw std::runtime_error("Failed to close file descriptor");
-    }
-}
-
-void try_lock_with_retries(int fd, int max_retries, int retry_delay_ms) {
-    for (int retries = 0; retries < max_retries; ++retries) {
-        try{
-            lock_file_with_timeout(fd, LOCK_EX, 10);
-            return;
-        } catch (const std::exception& e){
-            if (retries + 1 < max_retries)
-                usleep(retry_delay_ms * 1000);
-        }
-    }
-
-    throw std::runtime_error("File is currently locked by another process (maximum retries exceeded)");
 }

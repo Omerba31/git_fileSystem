@@ -57,7 +57,7 @@ bool write_with_length(int fd, const std::string &data) {
 int save_commit(const std::string &root_dir, const Commit &commit) {
     std::string commit_hash = hash_object(commit);
 
-    int fd = open_fd_for_saving_content(root_dir, commit_hash);
+    int fd = open_content_for_saving(root_dir, commit_hash);
     if (fd < 0) {
         return -1;
     }
@@ -91,7 +91,7 @@ int save_commit(const std::string &root_dir, const Commit &commit) {
 
 // Deserialize Commit from disk
 std::pair<int, Commit> load_commit(const std::string &root_dir, const std::string &hash) {
-    int fd = open_fd_for_reading_content(root_dir.c_str(), hash.c_str());
+    int fd = open_content_for_reading(root_dir.c_str(), hash.c_str());
     if (fd < 0) {
         return {-1, Commit()};
     }
@@ -160,7 +160,7 @@ std::pair<int, TreeRecord> read_tree_record(int fd) {
 int save_tree(const std::string &root_dir, const Tree &tree) {
     std::string tree_hash = hash_object(tree);
 
-    int fd = open_fd_for_saving_content(root_dir, tree_hash);
+    int fd = open_content_for_saving(root_dir, tree_hash);
     if (fd < 0) {
         return -1;
     }
@@ -179,7 +179,7 @@ int save_tree(const std::string &root_dir, const Tree &tree) {
 
 // Deserialize Tree from disk
 std::pair<int, Tree> load_tree(const std::string &root_dir, const std::string &hash) {
-    int fd = open_fd_for_reading_content(root_dir.c_str(), hash.c_str());
+    int fd = open_content_for_reading(root_dir.c_str(), hash.c_str());
     if (fd < 0) {
         return {-1, Tree({})};
     }

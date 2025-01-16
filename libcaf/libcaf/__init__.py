@@ -20,22 +20,22 @@ def hash_file(filename: str | Path) -> str:
 
     return _libcaf.hash_file(filename)
 
-def open_fd_for_reading_content(root_dir, hash_value:str) -> IO:
+def open_content_for_reading(root_dir, hash_value:str) -> IO:
     if isinstance(root_dir, Path):
         root_dir = str(root_dir)
 
-    fd = _libcaf.open_fd_for_reading_content(root_dir, hash_value)
+    fd = _libcaf.open_content_for_reading(root_dir, hash_value)
 
     if fd == -1:
         raise OSError(f"Failed to open content with hash '{hash_value}' in directory '{root_dir}'")
 
     return os.fdopen(fd, 'r')
 
-def open_fd_for_saving_content(root_dir, hash_value: str) -> IO:
+def open_content_for_saving(root_dir, hash_value: str) -> IO:
     if isinstance(root_dir, Path):
         root_dir = str(root_dir)
 
-    fd = _libcaf.open_fd_for_saving_content(root_dir, hash_value)
+    fd = _libcaf.open_content_for_saving(root_dir, hash_value)
 
     if fd == -1:
         raise OSError(f"Failed to open content with hash '{hash_value}' in directory '{root_dir}'")
@@ -48,40 +48,14 @@ def delete_content(root_dir: str | Path, hash_value: str) -> None:
 
     _libcaf.delete_content(root_dir, hash_value)
 
-
-@overload
-def save_file_content(root_dir: str | Path, filename: str | Path) -> None:
-    ...
-
-
-@overload
-def save_file_content(root_dir: str | Path, hash_value: str, flags: int) -> Tuple[IO, Path]:
-    ...
-
-
-def save_file_content(root_dir: str | Path, filename_or_hash: str | Path, flags: int = None) -> \
-        Tuple[IO, Path] | None:
+def save_file_content(root_dir: str | Path, file_path: str | Path) -> None:
     if isinstance(root_dir, Path):
         root_dir = str(root_dir)
 
-    if flags is None:
-        if isinstance(filename_or_hash, Path):
-            filename_or_hash = str(filename_or_hash)
+    if isinstance(file_path, Path):
+        file_path = str(file_path)
 
-        _libcaf.save_file_content(root_dir, filename_or_hash)
-    else:
-        if isinstance(filename_or_hash, Path):
-            raise ValueError("Filename cannot be a Path object when saving content with hash and flags")
-
-        result, fd, blob_path = _libcaf.save_file_content(root_dir, filename_or_hash, flags)
-
-        if result != 0:
-            raise OSError(f"Failed to save content with hash '{filename_or_hash}' in directory '{root_dir}'")
-
-        return os.fdopen(fd, 'w'), Path(blob_path)
-
-def close_content_fd(fd: IO) -> None:
-    _libcaf.close_content_fd(fd.fileno())
+    _libcaf.save_file_content(root_dir, file_path)
 
 def save_commit(root_dir: str | Path, commit) -> None:
     if isinstance(root_dir, Path):
@@ -133,9 +107,8 @@ __all__ = [
     'load_commit',
     'save_tree',
     'load_tree',
-    'open_fd_for_reading_content',
+    'open_content_for_reading',
     'delete_content',
-    'close_content_fd',
     'Commit',
     'hash_object',
     'Blob',
