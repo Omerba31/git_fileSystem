@@ -10,3 +10,4 @@ open_file
 *.egg-info/
 libcaf/build/
 build/
+.caf

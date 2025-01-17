@@ -27,11 +27,25 @@ def cli():
         'init': {
             'func': cli_commands.init,
             'args': {
-                **_repo_args
+                **_repo_args,
+                'default_branch': {
+                    'type': str,
+                    'help': 'name of the default branch (default: "main")',
+                    'default': 'main'
+                }
             },
             'help': 'initialize a new CAF repository'
         },
-        'hash-file': {
+
+        'delete_repo': {
+            'func': cli_commands.delete_repo,
+            'args': {
+                **_repo_args
+            },
+            'help': 'delete the repository'
+        },
+
+        'hash_file': {
             'func': cli_commands.hash_file,
             'args': {
                 'path': {
@@ -49,6 +63,50 @@ def cli():
             },
             'help': 'print the hash of the file and optionally save it to the repository'
         },
+
+        'add_branch': {
+            'func': cli_commands.add_branch,
+            'args': {
+                **_repo_args,
+                'branch_name': {
+                    'type': str,
+                    'help': 'Name of the branch to add'
+                }
+            },
+            'help': 'Add a new branch'
+        },
+
+        'delete_branch': {
+            'func': cli_commands.delete_branch,
+            'args': {
+                **_repo_args,
+                'branch_name': {
+                    'type': str,
+                    'help': 'Name of the branch to remove'
+                }
+            },
+            'help': 'Remove an existing branch'
+        },
+
+        'branch_exists': {
+            'func': cli_commands.branch_exists,
+            'args': {
+                **_repo_args,
+                'branch_name': {
+                    'type': str,
+                    'help': 'Name of the branch to check'
+                }
+            },
+            'help': 'Check if a branch exists'
+        },
+
+        'branch': {
+            'func': cli_commands.branch,
+            'args': {
+                **_repo_args
+            },
+            'help': 'List all branches'
+        }
     }
 
     # Register commands

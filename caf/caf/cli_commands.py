@@ -2,8 +2,9 @@ import sys
 from pathlib import Path
 
 from libcaf.repository import Repository, RepositoryError
-
 from libcaf import hash_file
+from libcaf.constants import DEFAULT_BRANCH
+
 
 def print_error(message):
     print(message, file=sys.stderr)
@@ -22,14 +23,20 @@ def _repo_from_cli_kwargs(kwargs) -> Repository:
 
 def init(**kwargs) -> int:
     repo = _repo_from_cli_kwargs(kwargs)
+    default_branch = kwargs.get('default_branch', DEFAULT_BRANCH)
 
     try:
-        repo.init()
-        print(f"Initialized empty CAF repository in {repo.repo_path()}")
+        repo.init(default_branch)
+        print(f"Initialized empty CAF repository in {repo.repo_path()} on branch {default_branch}")
         return 0
     except FileExistsError:
         print_error(f"CAF repository already exists in {repo.working_dir}")
         return -1
+
+def delete_repo(**kwargs):
+    repo = _repo_from_cli_kwargs(kwargs)
+    repo.delete_repo()
+    print(f"Deleted repository at {repo.repo_path()}")
 
 def cli_hash_file(**kwargs) -> int:
     path = Path(kwargs['path'])
@@ -55,3 +62,52 @@ def cli_hash_file(**kwargs) -> int:
             return -1
 
     return 0
+
+def add_branch(**kwargs):
+    repo = _repo_from_cli_kwargs(kwargs)
+    branch_name = kwargs['branch_name']
+    repo.add_branch(branch_name)
+
+def delete_branch(**kwargs):
+    repo = _repo_from_cli_kwargs(kwargs)
+    branch_name = kwargs.get('branch_name')
+
+    try:
+        repo.delete_branch(branch_name)
+        print(f"Branch '{branch_name}' deleted.")
+    except RepositoryError as e:
+        print_error(str(e))
+        return -1
+
+    return 0
+
+def branch_exists(**kwargs):
+    repo = _repo_from_cli_kwargs(kwargs)
+    branch_name = kwargs.get('branch_name')
+
+    if repo.branch_exists(branch_name):
+        print(f"Branch '{branch_name}' exists.")
+    else:
+        print(f"Branch '{branch_name}' does not exist.")
+        return -1
+
+    return 0
+
+def branch(**kwargs):
+    repo = _repo_from_cli_kwargs(kwargs)
+    branches = repo.list_branches()
+
+    if branches:
+        print("Branches:")
+        for index, branch in enumerate (branches):
+            if branch == repo.head_full_ref().split('/')[-1]:
+                print(f" {index+1}. HEAD: {branch}")
+            else:
+                print(f" {index+1}. {branch}")
+    else:
+        print("No branches found.")
+
+    return 0
+
+
+
