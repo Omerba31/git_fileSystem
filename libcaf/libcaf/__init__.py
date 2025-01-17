@@ -26,9 +26,6 @@ def open_content_for_reading(root_dir, hash_value:str) -> IO:
 
     fd = _libcaf.open_content_for_reading(root_dir, hash_value)
 
-    if fd == -1:
-        raise OSError(f"Failed to open content with hash '{hash_value}' in directory '{root_dir}'")
-
     return os.fdopen(fd, 'r')
 
 def open_content_for_saving(root_dir, hash_value: str) -> IO:
@@ -36,9 +33,6 @@ def open_content_for_saving(root_dir, hash_value: str) -> IO:
         root_dir = str(root_dir)
 
     fd = _libcaf.open_content_for_saving(root_dir, hash_value)
-
-    if fd == -1:
-        raise OSError(f"Failed to open content with hash '{hash_value}' in directory '{root_dir}'")
 
     return os.fdopen(fd, 'w')
 
@@ -61,20 +55,13 @@ def save_commit(root_dir: str | Path, commit) -> None:
     if isinstance(root_dir, Path):
         root_dir = str(root_dir)
 
-    result = _libcaf.save_commit(root_dir, commit)
-
-    if result != 0:
-        raise OSError(f"Failed to save commit in directory '{root_dir}'")
-
+    _libcaf.save_commit(root_dir, commit)
 
 def load_commit(root_dir: str | Path, hash_value) -> Commit:
     if isinstance(root_dir, Path):
         root_dir = str(root_dir)
 
-    result, commit = _libcaf.load_commit(root_dir, hash_value)
-
-    if result != 0:
-        raise OSError(f"Failed to load commit with hash '{hash_value}' in directory '{root_dir}'")
+    commit = _libcaf.load_commit(root_dir, hash_value)
 
     return commit
 
@@ -82,20 +69,13 @@ def save_tree(root_dir: str | Path, tree: Tree) -> None:
     if isinstance(root_dir, Path):
         root_dir = str(root_dir)
 
-    result = _libcaf.save_tree(root_dir, tree)
-
-    if result != 0:
-        raise OSError(f"Failed to save Tree in directory '{root_dir}'")
-
+    _libcaf.save_tree(root_dir, tree)
 
 def load_tree(root_dir: str | Path, hash_value) -> Tree:
     if isinstance(root_dir, Path):
         root_dir = str(root_dir)
 
-    result, tree = _libcaf.load_tree(root_dir, hash_value)
-
-    if result != 0:
-        raise OSError(f"Failed to load Tree with hash '{hash_value}' in directory '{root_dir}'")
+    tree = _libcaf.load_tree(root_dir, hash_value)
 
     return tree
 

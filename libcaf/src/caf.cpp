@@ -151,6 +151,7 @@ int open_content_for_saving(const std::string& content_root_dir, const std::stri
     create_content_path(content_root_dir, content_hash, content_path, sizeof(content_path));
 
     int fd = open(content_path.c_str(), O_WRONLY|O_CREAT, 0644);
+
     if (fd < 0) {
         throw std::runtime_error("Failed to open file");
     }
@@ -161,7 +162,6 @@ int open_content_for_saving(const std::string& content_root_dir, const std::stri
         close(fd);
         throw;
     }
-
 
     return fd;
 }
@@ -184,6 +184,7 @@ void delete_content(const std::string& content_root_dir, const std::string& cont
             close(fd);
             throw;
         }
+
     if (unlink(content_path.c_str()) != 0)
         throw std::runtime_error("Failed to delete file");
 

@@ -1,7 +1,5 @@
 #include "hashTypes.h"
 #include "caf.h"
-#include <sstream>
-#include <stdexcept>
 
 // Compute hash for Blob
 std::string hash_object(const Blob& blob) {
@@ -10,16 +8,16 @@ std::string hash_object(const Blob& blob) {
 
 // Compute hash for Tree
 std::string hash_object(const Tree& tree) {
-    std::ostringstream oss;
+    std::string acc_std;
     for (const auto& [key, record] : tree.records) {
-        oss << record.name.c_str() << std::to_string(static_cast<int>(record.type)) << record.hash.c_str();
+        acc_std += record.name + std::to_string(static_cast<int>(record.type)) + record.hash;
     }
-    return hash_string(oss.str());
+    return hash_string(acc_std);
 }
 
 // Compute hash for Commit
 std::string hash_object(const Commit& commit) {
-    std::ostringstream oss;
-    oss << commit.treeHash << commit.author << commit.message << commit.timestamp <<commit.parent.value_or("");
-    return hash_string(oss.str());
+    std::string acc_std;
+    acc_std += commit.treeHash + commit.author + commit.message + std::to_string(commit.timestamp) + commit.parent.value_or("");
+    return hash_string(acc_std);
 }

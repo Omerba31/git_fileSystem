@@ -8,196 +8,151 @@
 #include <sys/file.h>  
 #include <vector>      
 #include <cstring>     
-#include <stdexcept>   
+#include <stdexcept>
 
-// Helper function to read a length-prefixed string safely
-bool read_length_prefixed_string(int fd, std::string &output) {
-    uint32_t length;
-    if (read(fd, &length, sizeof(length)) != sizeof(length)) {
-        return false;  
-    }
-
-    if (length > MAX_LENGTH) {
-        return false;  
-    }
-
-    // Read the actual string
-    std::vector<char> buffer(length + 1);
-    if (read(fd, buffer.data(), length) != static_cast<ssize_t>(length)) {
-        return false;  
-    }
-    buffer[length] = '\0';  
-    output.assign(buffer.data());
-    return true;
-}
-
-// Helper function to clean up resources
-int cleanup(int fd, const std::string &root_dir, const std::string &hash, bool deleteContent) {
-    if (fd >= 0) {
-        flock(fd, LOCK_UN);
-        close(fd);
-    }
-    if (deleteContent) {
-        delete_content(root_dir.c_str(), hash.c_str());
-        return -1;
-    }
-    return 0;
-}
-
-bool write_with_length(int fd, const std::string &data) {
-    uint32_t length = data.length();
-    if (write(fd, &length, sizeof(length)) != sizeof(length) ||
-        write(fd, data.c_str(), length) != static_cast<ssize_t>(length)) {
-        return false;
-    }
-    return true;
-}
+std::string read_length_prefixed_string(int fd); // Helper function to read a length-prefixed string safely
+void write_with_length(int fd, const std::string &data); // Helper function to write a length-prefixed string safely
+void save_TreeRecord(int fd, const TreeRecord &record); // Helper function to serialize a TreeRecord
+TreeRecord load_TreeRecord(int fd); // Helper function to deserialize a TreeRecord
 
 // Serialize Commit to disk
-int save_commit(const std::string &root_dir, const Commit &commit) {
+void save_commit(const std::string &root_dir, const Commit &commit) {
     std::string commit_hash = hash_object(commit);
 
     int fd = open_content_for_saving(root_dir, commit_hash);
-    if (fd < 0) {
-        return -1;
-    }
 
-    if (!write_with_length(fd, commit.treeHash)) {
-        return cleanup(fd, root_dir, commit_hash, true);
-    }
-    if (!write_with_length(fd, commit.author)) {
-        return cleanup(fd, root_dir, commit_hash, true);
-    }
-    if (!write_with_length(fd, commit.message)) {
-        return cleanup(fd, root_dir, commit_hash, true);
-    }
-    if (write(fd, &commit.timestamp, sizeof(commit.timestamp)) != sizeof(commit.timestamp)) {
-        return cleanup(fd, root_dir, commit_hash, true);
-    }
-    if (commit.parent) {
-        if (!write_with_length(fd, *commit.parent)) {
-            return cleanup(fd, root_dir, commit_hash, true);
+    try{
+        write_with_length(fd, commit.treeHash);
+        write_with_length(fd, commit.author);
+        write_with_length(fd, commit.message);
+
+        if (write(fd, &commit.timestamp, sizeof(commit.timestamp)) != sizeof(commit.timestamp))
+            throw std::runtime_error("Failed to write timestamp");
+
+        if (commit.parent) {
+            write_with_length(fd, *commit.parent);
+        } else {
+            uint32_t length = 0;
+            if (write(fd, &length, sizeof(length)) != sizeof(length))
+                throw std::runtime_error("Failed to write parent");
         }
-    } else {
-        // If parent doesnt exists write 0 length string
-        uint32_t length = 0;
-        if (write(fd, &length, sizeof(length)) != sizeof(length)) {
-            return cleanup(fd, root_dir, commit_hash, true);
-        }
+
+        flock(fd, LOCK_UN);
+        close(fd);
+
+    } catch (const std::exception &e) {
+        delete_content(root_dir, commit_hash);
+        throw;
     }
-    // Cleanup without deleting content
-    return cleanup(fd, root_dir, commit_hash, false);
 }
 
 // Deserialize Commit from disk
-std::pair<int, Commit> load_commit(const std::string &root_dir, const std::string &hash) {
-    int fd = open_content_for_reading(root_dir.c_str(), hash.c_str());
-    if (fd < 0) {
-        return {-1, Commit()};
-    }
+Commit load_commit(const std::string &root_dir, const std::string &commit_hash) {
+    int fd = open_content_for_reading(root_dir, commit_hash);
 
-    std::string treehash;
-    if (!read_length_prefixed_string(fd, treehash)) {
-        cleanup(fd, root_dir, hash, true);
-        return {-1, Commit()};
-    }
-    std::string author;
-    if (!read_length_prefixed_string(fd, author)) {
-        cleanup(fd, root_dir, hash, true);
-        return {-1, Commit()};  // Failed to read author
-    }
-    std::string message;
-    if (!read_length_prefixed_string(fd, message)) {
-        cleanup(fd, root_dir, hash, true);
-        return {-1, Commit()};
-    }
+    std::string tree_hash = read_length_prefixed_string(fd);
+    std::string author = read_length_prefixed_string(fd);
+    std::string message = read_length_prefixed_string(fd);
+
     uint64_t timestamp;
-    if (read(fd, &timestamp, sizeof(timestamp)) != sizeof(timestamp)) {
-        cleanup(fd, root_dir, hash, true);
-        return {-1, Commit()};
-    }
+    if (read(fd, &timestamp, sizeof(timestamp)) != sizeof(timestamp))
+        throw std::runtime_error("Failed to read timestamp");
 
-    std::string parent;
-    if (!read_length_prefixed_string(fd, parent)) {
-        cleanup(fd, root_dir, hash, true);
-        return {-1, Commit()};
-    }
+    std::string parent_str = read_length_prefixed_string(fd);
 
-    cleanup(fd, root_dir, hash, false);
-    Commit commit(treehash, author, message, timestamp, parent.empty() ? std::nullopt : std::make_optional(parent));
-    return {0, commit};
+    flock(fd, LOCK_UN);
+    close(fd);
+
+    std::optional<std::string> parent = parent_str.empty() ? std::nullopt : std::make_optional(parent_str);
+    return Commit(tree_hash, author, message, timestamp, parent);
 }
-
-// Helper function to serialize a TreeRecord
-bool write_tree_record(int fd, const TreeRecord &record) {
-    uint8_t type = static_cast<uint8_t>(record.type);
-    if (write(fd, &type, sizeof(type)) != sizeof(type)) {
-        return false;
-    }
-    if (!write_with_length(fd, record.hash) || !write_with_length(fd, record.name)) {
-        return false;
-    }
-    return true;
-}
-
-// Helper function to deserialize a TreeRecord
-std::pair<int, TreeRecord> read_tree_record(int fd) {
-    uint8_t type;
-    if (read(fd, &type, sizeof(type)) != sizeof(type)) {
-        return {-1, TreeRecord(TreeRecord::Type::TREE, "", "")}; // Return failure
-    }
-    TreeRecord::Type recordType = static_cast<TreeRecord::Type>(type);
-    std::string hash, name;
-    if (!read_length_prefixed_string(fd, hash) || !read_length_prefixed_string(fd, name)) {
-        return {-1, TreeRecord(TreeRecord::Type::TREE, "", "")}; // Return failure
-    }
-    TreeRecord record(recordType, hash, name);
-    return {0, record};
-}
-
 
 // Serialize Tree to disk
-int save_tree(const std::string &root_dir, const Tree &tree) {
+void save_tree(const std::string &root_dir, const Tree &tree) {
     std::string tree_hash = hash_object(tree);
 
     int fd = open_content_for_saving(root_dir, tree_hash);
-    if (fd < 0) {
-        return -1;
-    }
 
-    uint32_t num_records = tree.records.size();
-    if (write(fd, &num_records, sizeof(num_records)) != sizeof(num_records)) {
-        return cleanup(fd, root_dir, tree_hash, true);
-    }
-    for (const auto &[name, record] : tree.records) {
-        if (!write_tree_record(fd, record)) {
-            return cleanup(fd, root_dir, tree_hash, true);
+     try {
+        uint32_t num_records = tree.records.size();
+        if (write(fd, &num_records, sizeof(num_records)) != sizeof(num_records))
+            throw std::runtime_error("Failed to write number of records");
+
+        for (const auto &[name, record] : tree.records) {
+            save_TreeRecord(fd, record);
         }
+
+        flock(fd, LOCK_UN);
+        close(fd);
+
+    } catch (const std::exception &e) {
+        delete_content(root_dir, tree_hash);
+        throw;
     }
-    return cleanup(fd, root_dir, tree_hash, false);
 }
 
 // Deserialize Tree from disk
-std::pair<int, Tree> load_tree(const std::string &root_dir, const std::string &hash) {
-    int fd = open_content_for_reading(root_dir.c_str(), hash.c_str());
-    if (fd < 0) {
-        return {-1, Tree({})};
-    }
+Tree load_tree(const std::string &root_dir, const std::string &tree_hash) {
+    int fd = open_content_for_reading(root_dir.c_str(), tree_hash.c_str());
 
     uint32_t num_records;
-    if (read(fd, &num_records, sizeof(num_records)) != sizeof(num_records)) {
-        cleanup(fd, root_dir, hash, true);
-        return {-1, Tree({})};
-    }
+    if (read(fd, &num_records, sizeof(num_records)) != sizeof(num_records))
+        throw std::runtime_error("Failed to read the number of records");
+
     std::map<std::string, TreeRecord> records;
     for (uint32_t i = 0; i < num_records; ++i) {
-        auto [status, record] = read_tree_record(fd);
-        if (status != 0) {
-            cleanup(fd, root_dir, hash, true);
-            return {-1, Tree({})};
-        }
-        records.emplace(record.name, std::move(record));
+        TreeRecord record = load_TreeRecord(fd);
+        records.emplace(record.name, record);
     }
-    cleanup(fd, root_dir, hash, false);
-    return {0, Tree(records)};
+
+    flock(fd, LOCK_UN);
+    close(fd);
+
+    return Tree(records);
+}
+
+std::string read_length_prefixed_string(int fd) {
+    uint32_t length;
+    if (read(fd, &length, sizeof(length)) != sizeof(length))
+        throw std::runtime_error("Failed to read length");
+
+    if (length > MAX_LENGTH)
+        throw std::runtime_error("Length exceeds maximum");
+
+    std::string result(length, '\0');
+
+    if (read(fd, &result[0], length) != static_cast<ssize_t>(length))
+        throw std::runtime_error("Failed to read string");
+
+    return result;
+}
+
+void write_with_length(int fd, const std::string &data) {
+    uint32_t length = data.length();
+    if (write(fd, &length, sizeof(length)) != sizeof(length) || write(fd, data.c_str(), length) != static_cast<ssize_t>(length)) {
+        throw std::runtime_error("Failed to write string");
+    }
+}
+
+void save_TreeRecord(int fd, const TreeRecord &record) {
+    uint8_t type = static_cast<uint8_t>(record.type);
+    if (write(fd, &type, sizeof(type)) != sizeof(type))
+        throw std::runtime_error("Failed to write type");
+
+    write_with_length(fd, record.hash);
+    write_with_length(fd, record.name);
+}
+
+TreeRecord load_TreeRecord(int fd) {
+    uint8_t type;
+    if (read(fd, &type, sizeof(type)) != sizeof(type)) {
+        throw std::runtime_error("Failed to read TreeRecord type");
+    }
+
+    TreeRecord::Type recordType = static_cast<TreeRecord::Type>(type);
+
+    std::string hash = read_length_prefixed_string(fd);
+    std::string name = read_length_prefixed_string(fd);
+
+    return TreeRecord(recordType, hash, name);
 }
