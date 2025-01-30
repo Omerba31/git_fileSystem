@@ -108,7 +108,7 @@ std::string hash_string(const std::string& content){
     return output;
 }
 
-void save_file_content(const std::string& content_root_dir, const std::string& file_path){
+Blob save_file_content(const std::string& content_root_dir, const std::string& file_path){
     if (mkdir(content_root_dir.c_str(), 0755) != 0 && errno != EEXIST)
         throw std::runtime_error("Failed to create root directory");
 
@@ -140,6 +140,8 @@ void save_file_content(const std::string& content_root_dir, const std::string& f
 
     flock(fd, LOCK_UN);
     close(fd);
+
+    return Blob(file_hash);
 }
 
 int open_content_for_saving(const std::string& content_root_dir, const std::string& content_hash){

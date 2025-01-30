@@ -42,14 +42,14 @@ def delete_content(root_dir: str | Path, hash_value: str) -> None:
 
     _libcaf.delete_content(root_dir, hash_value)
 
-def save_file_content(root_dir: str | Path, file_path: str | Path) -> None:
+def save_file_content(root_dir: str | Path, file_path: str | Path) -> Blob:
     if isinstance(root_dir, Path):
         root_dir = str(root_dir)
 
     if isinstance(file_path, Path):
         file_path = str(file_path)
 
-    _libcaf.save_file_content(root_dir, file_path)
+    return _libcaf.save_file_content(root_dir, file_path)
 
 def save_commit(root_dir: str | Path, commit) -> None:
     if isinstance(root_dir, Path):

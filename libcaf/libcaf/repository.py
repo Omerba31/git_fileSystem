@@ -3,6 +3,10 @@ import shutil
 
 import libcaf
 from libcaf.constants import OBJECTS_SUBDIR, DEFAULT_BRANCH, REFS_DIR, HEADS_DIR, HEAD_FILE
+from libcaf import Blob, TreeRecord, Commit, TreeRecordType, Tree, save_tree, hash_object, save_commit
+from collections import deque
+from datetime import datetime
+
 
 class RepositoryError(Exception):
     pass
@@ -64,8 +68,8 @@ class Repository:
             raise RepositoryError(f'Repository not found at {repo_path}')
 
     @requires_repo
-    def save_file_content(self, file: Path) -> None:
-        libcaf.save_file_content(self.objects_dir(), file)
+    def save_file_content(self, file: Path) -> Blob:
+        return libcaf.save_file_content(self.objects_dir(), file)
 
     @requires_repo
     def add_branch(self, branch_name: str) -> None:
@@ -92,3 +96,59 @@ class Repository:
     @requires_repo
     def list_branches(self) -> list:
         return [x.name for x in self.heads_dir().iterdir() if x.is_file()]
+    
+    @requires_repo
+    def save_directory_tree(self, path: Path) -> str:
+        if not path.is_dir():
+            raise ValueError(f"{path} is not a directory")
+
+        stack = deque([path])
+        hashes = {}
+
+        while stack:
+            current_path = stack.pop()
+            tree_records = {}
+
+            for item in current_path.iterdir():
+                if item.is_file():
+                    blob = self.save_file_content(item)
+                    tree_records[item.name] = TreeRecord(TreeRecordType.BLOB, item.name, blob.hash)
+                elif item.is_dir():
+                    if item in hashes:  # If the directory has already been processed, use its hash
+                        subtree_hash = hashes[item]
+                        tree_records[item.name] = TreeRecord(TreeRecordType.TREE, item.name, subtree_hash)
+                    else:
+                        stack.append(current_path)
+                        stack.append(item)
+                        break
+            else:
+                tree = Tree(tree_records)
+                save_tree(self.objects_dir(), tree)
+                hashes[current_path] = hash_object(tree)
+
+        return hashes[path]
+    
+    @requires_repo
+    def create_commit(self, author: str, message: str) -> str:
+        if not author or not message:
+            raise ValueError("Both 'author' and 'message' are required.")
+
+        tree_hash = self.save_directory_tree(self.working_dir)
+
+        parent_hash = None
+        if self.head_file().exists():
+            head_ref = self.head_full_ref()
+            parent_hash = head_ref
+
+        commit = Commit(tree_hash, author, message, int(datetime.now().timestamp()), parent_hash)
+
+        commit_hash = hash_object(commit)
+        save_commit(self.objects_dir(), commit)
+
+        with self.head_file().open("w") as head_file:
+            head_file.write(f"{commit_hash}\n")
+
+        return commit_hash
+    
+    
+    

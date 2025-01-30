@@ -1,10 +1,10 @@
 import sys
+import os
 from pathlib import Path
 
 from libcaf.repository import Repository, RepositoryError
-from libcaf import hash_file
+from libcaf import hash_file, hash_object
 from libcaf.constants import DEFAULT_BRANCH
-
 
 def print_error(message):
     print(message, file=sys.stderr)
@@ -109,5 +109,30 @@ def branch(**kwargs):
 
     return 0
 
+def commit(**kwargs):
+    try:
+        repo = _repo_from_cli_kwargs(kwargs)
+        if not repo.exists():
+            raise RepositoryError(f"No repository found at {repo.repo_path()}")
 
+        author = kwargs.get('author')
+        message = kwargs.get('message')
 
+        commit_hash = repo.create_commit(author, message)
+
+        print (f"Commit created successfully:\n"
+              f"Hash: {commit_hash}\n"
+              f"Author: {author}\n"
+              f"Message: {message}\n")
+        
+    except RepositoryError as e:
+        print_error(f"Repository error: {e}")
+        return -1
+    except ValueError as e:
+        print_error(f"Input error: {e}")
+        return -1
+    except Exception as e:
+        print_error(f"Unexpected error: {e}")
+        return -1
+
+    return 0

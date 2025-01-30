@@ -1,5 +1,5 @@
 from caf import cli_commands
-from libcaf import hash_file,open_content_for_reading,save_file_content
+from libcaf import hash_file,open_content_for_reading, load_commit, hash_object
 from libcaf.constants import DEFAULT_REPO_DIR, OBJECTS_SUBDIR, HEAD_FILE, REFS_DIR, HEADS_DIR, DEFAULT_BRANCH
 import pytest
 
@@ -143,5 +143,76 @@ class TestCLICommands:
         expected_branches = {"main"} | set(branches)
         assert len(branch_names) == len(expected_branches)
         assert set(branch_names) == expected_branches
+
+        def test_commit_success(self, initialized_temp_repo, capsys):
+            temp_file = initialized_temp_repo / "test_file.txt"
+            temp_file.write_text("Initial commit content")
+            cli_commands.cli_hash_file(
+                path=temp_file,
+                working_dir_path=initialized_temp_repo,
+                repo_dir=DEFAULT_REPO_DIR,
+                write=True
+            )
+
+            author = "John Doe"
+            message = "Initial commit"
+            result = cli_commands.commit(
+                working_dir_path=initialized_temp_repo,
+                repo_dir=DEFAULT_REPO_DIR,
+                author=author,
+                message=message
+            )
+            assert result == 0
+            
+            output = capsys.readouterr().out
+            assert "Commit created successfully:" in output
+            assert f"Author: {author}" in output
+            assert f"Message: {message}" in output
+            assert "Hash: " in output
+
+    def test_commit_no_repository(self, temp_repo, capsys):
+        temp_file = temp_repo / "test_file.txt"
+        temp_file.write_text("Content of test_file")
+        
+        result = cli_commands.commit(
+            working_dir_path=temp_repo,
+            repo_dir=DEFAULT_REPO_DIR,
+            author="Test Author",
+            message="Test commit message"
+        )
+        
+        assert result == -1
+        output = capsys.readouterr().err
+        assert "No repository found at" in output
+
+    def test_commit_missing_author(self, initialized_temp_repo, capsys):
+        temp_file = initialized_temp_repo / "test_file.txt"
+        temp_file.write_text("Content of test_file")
+        
+        result = cli_commands.commit(
+            working_dir_path=initialized_temp_repo,
+            repo_dir=DEFAULT_REPO_DIR,
+            author=None,
+            message="Test commit message"
+        )
+        
+        assert result == -1
+        output = capsys.readouterr().err
+        assert "Both 'author' and 'message' are required." in output
+
+    def test_commit_missing_message(self, initialized_temp_repo, capsys):
+        temp_file = initialized_temp_repo / "test_file.txt"
+        temp_file.write_text("Content of test_file")
+        
+        result = cli_commands.commit(
+            working_dir_path=initialized_temp_repo,
+            repo_dir=DEFAULT_REPO_DIR,
+            author="Test Author",
+            message=None
+        )
+        
+        assert result == -1
+        output = capsys.readouterr().err
+        assert "Both 'author' and 'message' are required." in output
 
 

@@ -19,10 +19,9 @@ class TestContent:
     def test_save_file_content(self, temp_repo, temp_content):
         file, expected_content = temp_content
 
-        save_file_content(temp_repo, file)
-        file_hash = hash_file(file)
+        blob = save_file_content(temp_repo, file)
 
-        saved_file = temp_repo / f"{file_hash[:2]}/{file_hash}"
+        saved_file = temp_repo / f"{blob.hash[:2]}/{blob.hash}"
         assert saved_file.exists()
 
         saved_content = saved_file.read_text()
@@ -31,10 +30,9 @@ class TestContent:
     def test_open_content_for_reading(self, temp_repo, temp_content):
         file, expected_content = temp_content
 
-        file_hash = hash_file(file)
-        save_file_content(temp_repo, file)
+        blob = save_file_content(temp_repo, file)
 
-        with open_content_for_reading(temp_repo, file_hash) as f:
+        with open_content_for_reading(temp_repo, blob.hash) as f:
             saved_content = f.read()
 
         assert saved_content == expected_content
@@ -42,13 +40,12 @@ class TestContent:
     def test_open_content_for_saving(self, temp_repo, temp_content):
         file, expected_content = temp_content
 
-        file_hash = hash_file(file)
-        save_file_content(temp_repo, file)
+        blob = save_file_content(temp_repo, file)
 
-        with open_content_for_saving(temp_repo, file_hash) as f:
+        with open_content_for_saving(temp_repo, blob.hash) as f:
             f.write(expected_content)
 
-        saved_file = temp_repo / f"{file_hash[:2]}/{file_hash}"
+        saved_file = temp_repo / f"{blob.hash[:2]}/{blob.hash}"
         saved_content = saved_file.read_text()
 
         assert saved_content == expected_content
@@ -56,13 +53,12 @@ class TestContent:
     def test_save_and_delete_content(self, temp_repo, temp_content):
         file, _ = temp_content
 
-        save_file_content(temp_repo, file)
-        file_hash = hash_file(file)
+        blob = save_file_content(temp_repo, file)
 
-        saved_file_path = temp_repo / f"{file_hash[:2]}/{file_hash}"
+        saved_file_path = temp_repo / f"{blob.hash[:2]}/{blob.hash}"
         assert saved_file_path.exists()
 
-        delete_content(temp_repo, file_hash)
+        delete_content(temp_repo, blob.hash)
         assert not saved_file_path.exists()
 
     def test_concurrent_read_and_write(self, temp_repo, temp_content):
@@ -106,14 +102,14 @@ class TestContent:
 
     def test_concurrent_delete(self, temp_repo, temp_content):
         file, _ = temp_content
-        file_hash = hash_file(file)
+        blob = save_file_content(temp_repo, file)
 
         def save():
             save_file_content(temp_repo, file)
 
         def delete():
             time.sleep(0.2)
-            delete_content(temp_repo, file_hash)
+            delete_content(temp_repo, blob.hash)
 
         save_thread = threading.Thread(target=save)
         delete_thread = threading.Thread(target=delete)
@@ -124,5 +120,5 @@ class TestContent:
         save_thread.join()
         delete_thread.join()
 
-        saved_file_path = temp_repo / f"{file_hash[:2]}/{file_hash}"
+        saved_file_path = temp_repo / f"{blob.hash[:2]}/{blob.hash}"
         assert not saved_file_path.exists()

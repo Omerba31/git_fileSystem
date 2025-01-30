@@ -45,6 +45,22 @@ def cli():
             'help': 'delete the repository'
         },
 
+        'commit': {
+            'func': cli_commands.commit,
+            'args': {
+                **_repo_args,
+                'author': {
+                    'type': str,
+                    'help': 'Name of the commit author'
+                },
+                'message': {
+                    'type': str,
+                    'help': 'Commit message'
+                }
+            },
+            'help': 'Create a new commit'
+        },
+
         'hash_file': {
             'func': cli_commands.hash_file,
             'args': {

@@ -3,8 +3,9 @@ import time
 
 from pytest import mark, raises
 
-from libcaf import hash_file, delete_content, open_content_for_reading, save_file_content
-
+from libcaf import hash_file, delete_content, open_content_for_reading, save_file_content, repository, load_commit, hash_object, Tree, TreeRecord, TreeRecordType
+from libcaf.constants import DEFAULT_REPO_DIR
+from libcaf.repository import Repository
 
 class TestRepo:
     def test_open_non_existent_file(self, temp_repo):
@@ -42,3 +43,91 @@ class TestRepo:
 
         assert saved_file_path1.exists()
         assert saved_file_path2.exists()
+
+    def test_create_commit(self, temp_repo):
+        repo = Repository(temp_repo, DEFAULT_REPO_DIR)
+        repo.init()
+
+        temp_file = repo.working_dir / "test_file.txt"
+        temp_file.write_text("This is a test file for commit.")
+
+        repo.save_file_content(temp_file)
+
+        author = "John Doe"
+        message = "Initial commit"
+
+        commit_hash = repo.create_commit(author, message)
+        commit = load_commit(repo.objects_dir(), commit_hash)
+
+        assert commit.author == author
+        assert commit.message == message
+        assert commit.treeHash is not None
+
+        head_file = repo.head_file()
+        assert head_file.exists()
+
+        head_content = head_file.read_text().strip()
+        assert len(head_content) > 0
+        assert head_content == commit_hash
+
+        commit_file = repo.objects_dir() / commit_hash[:2] / commit_hash
+        assert commit_file.exists()
+
+    def test_create_commit_with_parent(self, temp_repo):
+        repo = Repository(temp_repo, DEFAULT_REPO_DIR)
+        repo.init()
+        head_file = repo.head_file()
+        objects_dir = repo.objects_dir()
+
+        temp_file = repo.working_dir / "test_file.txt"
+        temp_file.write_text("Initial commit content")
+        repo.save_file_content(temp_file)
+
+        author = "John Doe"
+
+        first_commit_hash = repo.create_commit(author, "First commit")
+        first_commit = load_commit(objects_dir, first_commit_hash)
+        assert first_commit_hash == hash_object(first_commit)
+
+        assert head_file.read_text().strip() == first_commit_hash
+
+        temp_file.write_text("Second commit content")
+        repo.save_file_content(temp_file)
+
+        second_commit_hash = repo.create_commit(author, "Second commit")
+        second_commit = load_commit(objects_dir, second_commit_hash)
+        assert second_commit_hash == hash_object(second_commit)
+
+        assert head_file.read_text().strip() == second_commit_hash
+        assert second_commit.parent == first_commit_hash
+
+
+    def test_save_directory_tree(self, temp_repo):
+        repo = Repository(temp_repo, DEFAULT_REPO_DIR)
+        repo.init()
+
+        test_dir = repo.working_dir / "test_dir"
+        test_dir.mkdir()
+        sub_dir = test_dir / "sub_dir"
+        sub_dir.mkdir()
+
+        file1 = test_dir / "file1.txt"
+        file1.write_text("Content of file1")
+        file2 = sub_dir / "file2.txt"
+        file2.write_text("Content of file2")
+        file3 = sub_dir / "file3.txt"
+        file3.write_text("Content of file3")
+
+        tree_hash = repo.save_directory_tree(test_dir)
+
+        assert tree_hash is not None
+        assert isinstance(tree_hash, str)
+        assert len(tree_hash) > 0
+
+        objects_dir = repo.objects_dir()
+
+        for file_path in [file1, file2, file3]:
+            file_blob_hash = hash_object(repo.save_file_content(file_path))
+            assert (objects_dir / file_blob_hash[:2] / file_blob_hash).exists()
+
+        assert (objects_dir / tree_hash[:2] / tree_hash).exists()
