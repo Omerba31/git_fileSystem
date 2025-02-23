@@ -3,8 +3,10 @@ import os
 from pathlib import Path
 
 from libcaf.repository import Repository, RepositoryError
-from libcaf import hash_file, hash_object
+from libcaf import hash_file
 from libcaf.constants import DEFAULT_BRANCH
+from datetime import datetime
+
 
 def print_error(message):
     print(message, file=sys.stderr)
@@ -133,6 +135,33 @@ def commit(**kwargs):
         return -1
     except Exception as e:
         print_error(f"Unexpected error: {e}")
+        return -1
+
+    return 0
+
+def log(**kwargs) -> int:
+    try:
+        repo = _repo_from_cli_kwargs(kwargs)
+        if not repo.exists():
+            raise RepositoryError(f"No repository found at {repo.repo_path()}")
+
+        commit_history = list(repo.get_commit_history())
+        if not commit_history:
+            print("No commits in the repository.")
+            return 0
+
+        print("Commit History:\n")
+        for commit_hash, commit in commit_history:
+            print(f"Commit: {commit_hash}")
+            print(f"Author: {commit.author}")
+            commit_date = datetime.fromtimestamp(commit.timestamp).strftime('%Y-%m-%d %H:%M:%S')
+            print(f"Date: {commit_date}\n")
+            for line in commit.message.splitlines():
+                print(f"    {line}")
+            print("\n" + "-" * 50 + "\n")
+
+    except Exception as e:
+        print_error(f"Error executing log command: {e}")
         return -1
 
     return 0

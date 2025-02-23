@@ -215,4 +215,59 @@ class TestCLICommands:
         output = capsys.readouterr().err
         assert "Both 'author' and 'message' are required." in output
 
+    def test_log_command(self, initialized_temp_repo, capsys):
+        temp_file = initialized_temp_repo / "log_test.txt"
+        temp_file.write_text("First commit content")
+
+        cli_commands.cli_hash_file(
+            path=temp_file,
+            working_dir_path=initialized_temp_repo,
+            repo_dir=DEFAULT_REPO_DIR,
+            write=True
+        )
+        commit_hash1 = cli_commands.commit(
+            working_dir_path=initialized_temp_repo,
+            repo_dir=DEFAULT_REPO_DIR,
+            author="Log Tester",
+            message="First commit"
+        )
+
+        temp_file.write_text("Second commit content")
+        cli_commands.cli_hash_file(
+            path=temp_file,
+            working_dir_path=initialized_temp_repo,
+            repo_dir=DEFAULT_REPO_DIR,
+            write=True
+        )
+        commit_hash2 = cli_commands.commit(
+            working_dir_path=initialized_temp_repo,
+            repo_dir=DEFAULT_REPO_DIR,
+            author="Log Tester",
+            message="Second commit"
+        )
+
+        result = cli_commands.log(working_dir_path=initialized_temp_repo, repo_dir=DEFAULT_REPO_DIR)
+        assert result == 0
+
+        captured = capsys.readouterr().out
+        assert str(commit_hash1) in captured
+        assert str(commit_hash2) in captured
+        assert "Log Tester" in captured
+        assert "First commit" in captured
+        assert "Second commit" in captured
+
+    def test_log_no_repo(self, temp_repo, capsys):
+        result = cli_commands.log(working_dir_path=temp_repo, repo_dir=DEFAULT_REPO_DIR)
+        assert result == -1
+        captured = capsys.readouterr().err
+        assert "No repository found" in captured
+
+    def test_log_no_commits(self, initialized_temp_repo, capsys):
+        result = cli_commands.log(working_dir_path=initialized_temp_repo, repo_dir=DEFAULT_REPO_DIR)
+        assert result == 0
+        captured = capsys.readouterr().out
+        assert "No commits in the repository." in captured
+
+
+
 

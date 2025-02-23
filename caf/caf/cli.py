@@ -122,6 +122,14 @@ def cli():
                 **_repo_args
             },
             'help': 'List all branches'
+        },
+
+        'log': {
+            'func': cli_commands.log,
+            'args': {
+                **_repo_args
+            },
+            'help': 'Show commit history'
         }
     }
 

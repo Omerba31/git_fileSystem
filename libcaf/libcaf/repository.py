@@ -3,7 +3,7 @@ import shutil
 
 import libcaf
 from libcaf.constants import OBJECTS_SUBDIR, DEFAULT_BRANCH, REFS_DIR, HEADS_DIR, HEAD_FILE
-from libcaf import Blob, TreeRecord, Commit, TreeRecordType, Tree, save_tree, hash_object, save_commit
+from libcaf import Blob, TreeRecord, Commit, TreeRecordType, Tree, save_tree, hash_object, save_commit, load_commit
 from collections import deque
 from datetime import datetime
 
@@ -135,10 +135,8 @@ class Repository:
 
         tree_hash = self.save_directory_tree(self.working_dir)
 
-        parent_hash = None
-        if self.head_file().exists():
-            head_ref = self.head_full_ref()
-            parent_hash = head_ref
+        head_content = self.head_file().read_text().strip()
+        parent_hash = None if head_content.startswith("ref:") else head_content
 
         commit = Commit(tree_hash, author, message, int(datetime.now().timestamp()), parent_hash)
 
@@ -149,6 +147,29 @@ class Repository:
             head_file.write(f"{commit_hash}\n")
 
         return commit_hash
+    
+    @requires_repo
+    def get_commit_history(self, start_commit: str = None):
+        try:
+            if start_commit is None:
+                head_hash = self.head_file().read_text().strip()
+            else:
+                head_hash = start_commit
+        except Exception as e:
+            raise RepositoryError(f"Error reading HEAD file: {e}")
+
+        if head_hash.startswith("ref:"):
+            return
+
+        current_hash = head_hash
+        while current_hash:
+            try:
+                commit = load_commit(self.objects_dir(), current_hash)
+            except Exception as e:
+                raise RepositoryError(f"Error loading commit {current_hash}: {e}")
+            yield (current_hash, commit)
+            current_hash = commit.parent if commit.parent else None
+
     
     
     

@@ -131,3 +131,23 @@ class TestRepo:
             assert (objects_dir / file_blob_hash[:2] / file_blob_hash).exists()
 
         assert (objects_dir / tree_hash[:2] / tree_hash).exists()
+
+    def test_get_commit_history(self, temp_repo):
+        repo = Repository(temp_repo, DEFAULT_REPO_DIR)
+        repo.init()
+
+        temp_file = repo.working_dir / "commit_test.txt"
+        temp_file.write_text("Initial commit")
+        repo.save_file_content(temp_file)
+        commit_hash1 = repo.create_commit("Author", "First commit")
+
+        temp_file.write_text("Second commit")
+        repo.save_file_content(temp_file)
+        commit_hash2 = repo.create_commit("Author", "Second commit")
+
+        history = list(repo.get_commit_history())
+        assert len(history) == 2
+
+        assert history[0][0] == commit_hash2
+        assert history[1][0] == commit_hash1
+
