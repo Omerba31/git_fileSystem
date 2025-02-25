@@ -130,6 +130,21 @@ def cli():
                 **_repo_args
             },
             'help': 'Show commit history'
+        },
+        'diff': {
+            'func': cli_commands.diff,
+            'args': {
+                **_repo_args,
+                'commit1': {
+                    'type': str,
+                    'help': 'First commit hash to diff'
+                },
+                'commit2': {
+                    'type': str,
+                    'help': 'Second commit hash to diff'
+                }
+            },
+            'help': 'Display differences between two commits'
         }
     }
 

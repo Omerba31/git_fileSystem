@@ -3,10 +3,24 @@ import shutil
 
 import libcaf
 from libcaf.constants import OBJECTS_SUBDIR, DEFAULT_BRANCH, REFS_DIR, HEADS_DIR, HEAD_FILE
-from libcaf import Blob, TreeRecord, Commit, TreeRecordType, Tree, save_tree, hash_object, save_commit, load_commit
+from libcaf import Blob, TreeRecord, Commit, TreeRecordType, Tree, save_tree, hash_object, save_commit, load_commit, load_tree
 from collections import deque
 from datetime import datetime
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import List, Union
 
+class DiffType(Enum):
+    ADDED = "added"
+    REMOVED = "removed"
+    MODIFIED = "modified"
+    MOVED = "moved"
+
+@dataclass
+class Diff:
+    diff_type: DiffType
+    name: str
+    children: List[Union['Diff', object]] = field(default_factory=list)
 
 class RepositoryError(Exception):
     pass
@@ -96,7 +110,7 @@ class Repository:
     @requires_repo
     def list_branches(self) -> list:
         return [x.name for x in self.heads_dir().iterdir() if x.is_file()]
-    
+
     @requires_repo
     def save_directory_tree(self, path: Path) -> str:
         if not path.is_dir():
@@ -110,13 +124,15 @@ class Repository:
             tree_records = {}
 
             for item in current_path.iterdir():
+                if item.name == self.repo_dir.name:
+                    continue
                 if item.is_file():
                     blob = self.save_file_content(item)
-                    tree_records[item.name] = TreeRecord(TreeRecordType.BLOB, item.name, blob.hash)
+                    tree_records[item.name] = TreeRecord(TreeRecordType.BLOB, blob.hash, item.name)
                 elif item.is_dir():
                     if item in hashes:  # If the directory has already been processed, use its hash
                         subtree_hash = hashes[item]
-                        tree_records[item.name] = TreeRecord(TreeRecordType.TREE, item.name, subtree_hash)
+                        tree_records[item.name] = TreeRecord(TreeRecordType.TREE, subtree_hash, item.name)
                     else:
                         stack.append(current_path)
                         stack.append(item)
@@ -170,6 +186,61 @@ class Repository:
             yield (current_hash, commit)
             current_hash = commit.parent if commit.parent else None
 
-    
-    
-    
+    @requires_repo
+    def diff_commits(self, commit_hash1: str, commit_hash2: str) -> List[Diff]:
+        try:
+            commit1 = load_commit(self.objects_dir(), commit_hash1)
+            commit2 = load_commit(self.objects_dir(), commit_hash2)
+        except Exception as e:
+            raise RepositoryError(f"Error loading commits: {e}")
+        
+        if commit1.treeHash == commit2.treeHash:
+            return []
+        
+        try:
+            tree1 = load_tree(self.objects_dir(), commit1.treeHash)
+            tree2 = load_tree(self.objects_dir(), commit2.treeHash)
+        except Exception as e:
+            raise RepositoryError(f"Error loading trees: {e}")
+        
+        stack = [(tree1, tree2, None)]  # (tree1, tree2, parent_diff)
+        diffs = []
+        
+        while stack:
+            current_tree1, current_tree2, parent_diff = stack.pop()
+            records1 = current_tree1.get_records() if current_tree1 else {}
+            records2 = current_tree2.get_records() if current_tree2 else {}
+            local_diffs = []
+            
+            for fname in records1:
+                if fname in records2:
+                    if records1[fname].hash != records2[fname].hash:
+                        if records1[fname].type == "tree" and records2[fname].type == "tree":
+                            subtree_diff = Diff(diff_type=DiffType.MODIFIED, name=fname, children=[])
+                            stack.append((
+                                load_tree(self.objects_dir(), records1[fname].hash),
+                                load_tree(self.objects_dir(), records2[fname].hash),
+                                subtree_diff
+                            ))
+                            local_diffs.append(subtree_diff)
+                        else:
+                            local_diffs.append(Diff(diff_type=DiffType.MODIFIED, name=fname))
+                else:
+                    local_diffs.append(Diff(diff_type=DiffType.REMOVED, name=fname))
+            
+            for fname in records2:
+                if fname not in records1:
+                    local_diffs.append(Diff(diff_type=DiffType.ADDED, name=fname))
+            
+            if parent_diff is not None:
+                parent_diff.children.extend(local_diffs)
+            else:
+                diffs.extend(local_diffs)
+        
+        return diffs
+
+
+
+        
+        
+        

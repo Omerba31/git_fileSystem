@@ -2,8 +2,7 @@ import threading
 import time
 
 from pytest import mark, raises
-
-from libcaf import hash_file, delete_content, open_content_for_reading, save_file_content, repository, load_commit, hash_object, Tree, TreeRecord, TreeRecordType
+from libcaf import hash_file, delete_content, open_content_for_reading, save_file_content, load_commit, hash_object
 from libcaf.constants import DEFAULT_REPO_DIR
 from libcaf.repository import Repository
 
@@ -150,4 +149,5 @@ class TestRepo:
 
         assert history[0][0] == commit_hash2
         assert history[1][0] == commit_hash1
+
 

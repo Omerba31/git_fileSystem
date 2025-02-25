@@ -165,3 +165,38 @@ def log(**kwargs) -> int:
         return -1
 
     return 0
+
+def diff(**kwargs) -> int:
+    try:
+        repo = _repo_from_cli_kwargs(kwargs)
+        if not repo.exists():
+            raise RepositoryError(f"No repository found at {repo.repo_path()}")
+
+        commit1 = kwargs.get("commit1")
+        commit2 = kwargs.get("commit2")
+
+        if not commit1 or not commit2:
+            print_error("Both commit1 and commit2 parameters are required for diff.")
+            return -1
+
+        diffs = repo.diff_commits(commit1, commit2)
+
+        if not diffs:
+            print("No changes detected between commits.")
+            return 0
+
+        print("Diff between commits:\n")
+        
+        stack = [(diffs, "")]
+        while stack:
+            current_diffs, indent = stack.pop()
+            for diff_item in current_diffs:
+                print(f"{indent}{diff_item.diff_type.value.capitalize()}: {diff_item.name}")
+                if diff_item.children:
+                    stack.append((diff_item.children, indent + "   "))
+    
+    except Exception as e:
+        print_error(f"Error executing diff command: {e}")
+        return -1
+
+    return 0
