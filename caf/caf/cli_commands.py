@@ -1,11 +1,12 @@
 import sys
-import os
+from datetime import datetime
 from pathlib import Path
 
-from libcaf.repository import Repository, RepositoryError
-from libcaf import hash_file
 from libcaf.constants import DEFAULT_BRANCH
-from datetime import datetime
+from libcaf.repository import (AddedDiff, ModifiedDiff, MovedFromDiff, MovedToDiff, RemovedDiff,
+                               Repository, RepositoryError)
+
+from libcaf import hash_file
 
 
 def print_error(message):
@@ -186,15 +187,26 @@ def diff(**kwargs) -> int:
             return 0
 
         print("Diff between commits:\n")
-        
-        stack = [(diffs, "")]
+
+        stack = [(diffs, 0)]
         while stack:
             current_diffs, indent = stack.pop()
-            for diff_item in current_diffs:
-                print(f"{indent}{diff_item.diff_type.value.capitalize()}: {diff_item.name}")
-                if diff_item.children:
-                    stack.append((diff_item.children, indent + "   "))
-    
+            for diff in current_diffs:
+                print(" " * indent, end="")
+
+                match diff:
+                    case AddedDiff(record, _, _):
+                        print(f"Added: {record.name}")
+                    case ModifiedDiff(record, _, _):
+                        print(f"Modified: {record.name}")
+                    case MovedToDiff(record, _, _, moved_to):
+                        print(f"Moved: {record.name} -> {moved_to.record.name}")
+                    case RemovedDiff(record, _, _):
+                        print(f"Removed: {record.name}")
+
+                if diff.children:
+                    stack.append((diff.children, indent + 3))
+
     except Exception as e:
         print_error(f"Error executing diff command: {e}")
         return -1
